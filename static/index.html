@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Proyecta360 | Gestión híbrida PMP + Scrum</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-mark">P360</div>
+      <button class="side-item active" data-view="gantt">⌁<span>Proyectos</span></button>
+      <button class="side-item" data-view="scrum">▦<span>Scrum</span></button>
+      <button class="side-item" data-view="risks">⚠<span>Riesgos</span></button>
+      <button class="side-item" data-view="resources">◉<span>Recursos</span></button>
+      <button class="side-item" data-view="ai">✦<span>IA</span></button>
+      <button class="side-item" data-view="parameters">⚙<span>Parámetros</span></button>
+      <div class="side-footer">Modelo híbrido<br/>PMP + Scrum</div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div class="logo">
+          <div class="logo-icon">◇</div>
+          <div>
+            <strong>Proyecta360</strong>
+            <small>Control integral de proyectos</small>
+          </div>
+        </div>
+        <nav class="main-tabs">
+          <button class="top-tab active" data-view="portfolio">Portafolio</button>
+          <button class="top-tab" data-view="gantt">Plan Maestro</button>
+          <button class="top-tab" data-view="gantt">Gantt</button>
+          <button class="top-tab" data-view="scrum">Scrum</button>
+          <button class="top-tab" data-view="resources">Recursos</button>
+          <button class="top-tab" data-view="risks">Riesgos</button>
+          <button class="top-tab" data-view="ai">Reportes IA</button>
+        </nav>
+        <div class="user-chip">
+          <span class="sync-dot"></span>
+          <span>Sincronizado</span>
+        </div>
+      </header>
+
+      <section class="project-header">
+        <div>
+          <div class="eyebrow">Proyecto</div>
+          <h1 id="projectTitle">Cargando...</h1>
+          <p id="projectDescription">Preparando información del proyecto.</p>
+          <div class="meta-row">
+            <span id="projectMethodology" class="pill pill-blue">Híbrida PMP + Scrum</span>
+            <span id="projectStatus" class="pill pill-green">En ejecución</span>
+            <span id="projectDates" class="pill">Fechas</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <select id="projectSelector"></select>
+          <button class="btn ghost" id="btnNewProject">+ Nuevo proyecto</button>
+          <button class="btn ghost" id="btnOpenParameters">Parametrizar proyecto</button>
+          <button class="btn primary" id="btnAddTask">+ Nueva actividad</button>
+        </div>
+      </section>
+
+      <section class="kpi-strip" id="kpiStrip"></section>
+
+      <section id="view-portfolio" class="view hidden">
+        <div class="section-card">
+          <div class="section-title">
+            <h2>Portafolio de proyectos</h2>
+            <p>Vista ejecutiva de proyectos, avance, salud y metodología.</p>
+          </div>
+          <div id="portfolioGrid" class="portfolio-grid"></div>
+        </div>
+      </section>
+
+      <section id="view-gantt" class="view">
+        <div class="grid-layout">
+          <div class="section-card gantt-card">
+            <div class="section-title horizontal">
+              <div>
+                <h2>Plan Maestro / Gantt</h2>
+                <p>Actividades, dependencias e hitos integrados al control del proyecto.</p>
+              </div>
+              <div class="toolbar">
+                <button class="btn small" id="btnAiPlan">Generar plan IA-ready</button>
+                <button class="btn small ghost" id="btnReload">Actualizar</button>
+              </div>
+            </div>
+            <div class="gantt-shell">
+              <div class="task-table">
+                <div class="task-head"><span>#</span><span>Actividad</span><span>Responsable</span><span>Avance</span></div>
+                <div id="taskRows"></div>
+              </div>
+              <div class="timeline-wrap">
+                <div id="timelineHeader" class="timeline-header"></div>
+                <div id="ganttGrid" class="gantt-grid"></div>
+                <svg id="dependencySvg" class="dependency-svg"></svg>
+              </div>
+            </div>
+          </div>
+
+          <aside class="right-panel">
+            <div class="panel-card progress-card">
+              <h3>Control del proyecto</h3>
+              <div class="donut" id="progressDonut"><span>0%</span></div>
+              <div class="legend">
+                <span><i class="done"></i>Completado</span>
+                <span><i class="process"></i>En progreso</span>
+                <span><i class="pending"></i>Pendiente</span>
+              </div>
+            </div>
+            <div class="panel-card" id="milestonePanel"></div>
+            <div class="panel-card" id="dependencyPanel"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="view-scrum" class="view hidden">
+        <div class="section-card scrum-card">
+          <div class="section-title horizontal">
+            <div>
+              <h2>Scrum / Sprint actual</h2>
+              <p>La ejecución puede ser Scrum, Kanban, XP o híbrida, pero el control queda consolidado.</p>
+            </div>
+            <button class="btn primary" id="btnAddStory">+ Historia</button>
+          </div>
+          <div class="scrum-layout">
+            <div class="sprint-metrics" id="sprintMetrics"></div>
+            <div class="burndown-card">
+              <h3>Burndown</h3>
+              <div class="chart" id="burndown"></div>
+            </div>
+            <div class="board" id="scrumBoard"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-risks" class="view hidden">
+        <div class="section-card">
+          <div class="section-title horizontal">
+            <div>
+              <h2>Riesgos del proyecto</h2>
+              <p>Matriz simple de probabilidad, impacto, nivel y respuesta.</p>
+            </div>
+            <button class="btn primary" id="btnAddRisk">+ Riesgo</button>
+          </div>
+          <div id="riskTable" class="data-table"></div>
+        </div>
+      </section>
+
+      <section id="view-resources" class="view hidden">
+        <div class="section-card">
+          <div class="section-title horizontal">
+            <div>
+              <h2>Recursos y capacidad</h2>
+              <p>Responsables, roles y disponibilidad para alimentar planeación e IA futura.</p>
+            </div>
+            <button class="btn primary" id="btnAddResource">+ Recurso</button>
+          </div>
+          <div id="resourceGrid" class="resource-grid"></div>
+        </div>
+      </section>
+
+      <section id="view-ai" class="view hidden">
+        <div class="ai-grid">
+          <div class="section-card">
+            <div class="section-title">
+              <h2>Asistente IA-ready</h2>
+              <p>Por ahora funciona con un motor determinístico. Más adelante se conecta con OpenAI/Azure OpenAI sin cambiar la arquitectura.</p>
+            </div>
+            <label>Objetivo del proyecto</label>
+            <textarea id="aiObjective" rows="5">Implementar una solución empresarial con planificación PMP, ejecución ágil y reportes ejecutivos.</textarea>
+            <div class="form-grid two">
+              <label>Metodología de ejecución
+                <select id="aiMethodology">
+                  <option>Scrum</option>
+                  <option>Kanban</option>
+                  <option>Híbrida</option>
+                  <option>Tradicional</option>
+                </select>
+              </label>
+              <label>Horizonte en semanas
+                <input id="aiWeeks" type="number" value="12" min="4" max="52" />
+              </label>
+            </div>
+            <button class="btn primary" id="btnGeneratePlan">Generar actividades y dependencias</button>
+            <button class="btn ghost" id="btnGenerateReport">Generar informe ejecutivo</button>
+          </div>
+          <div class="section-card report-card">
+            <h2>Resultado IA / Reporte</h2>
+            <pre id="aiOutput">Aún no hay resultado generado.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-parameters" class="view hidden">
+        <div class="section-card">
+          <div class="section-title horizontal">
+            <div>
+              <h2>Parametrización del proyecto</h2>
+              <p>Bloque central para configurar modelo de control, metodología, calendario, fases, estados, matriz de riesgo e IA.</p>
+            </div>
+            <button class="btn primary" id="btnSaveParametersInline">Guardar parámetros</button>
+          </div>
+          <div id="parametersForm" class="parameters-form"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal hidden" id="entityModal">
+    <div class="modal-backdrop" data-close="modal"></div>
+    <div class="modal-card">
+      <button class="modal-close" data-close="modal">×</button>
+      <h2 id="modalTitle">Formulario</h2>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
