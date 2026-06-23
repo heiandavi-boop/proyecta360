@@ -5,7 +5,7 @@ import math
 import os
 import sqlite3
 from contextlib import asynccontextmanager
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -52,6 +52,21 @@ DEFAULT_PARAMETERS: Dict[str, Any] = {
         "allow_create_tasks": True,
         "allow_create_risks": True,
     },
+}
+
+# Explicit allow-lists for the dynamic UPDATE builders. Column names are
+# interpolated into SQL, so they must never come from arbitrary input — only
+# from these sets. Keys outside the set fail loud instead of writing silently.
+PROJECT_UPDATE_COLUMNS = {
+    "name", "description", "sponsor", "project_manager", "start_date", "end_date",
+    "methodology", "status", "budget", "currency", "parameters_json",
+}
+TASK_UPDATE_COLUMNS = {
+    "title", "phase", "task_type", "start_date", "end_date", "progress", "owner",
+    "status", "story_points", "budget", "description", "order_index",
+}
+STORY_UPDATE_COLUMNS = {
+    "project_id", "sprint_id", "title", "status", "points", "assignee", "priority",
 }
 
 # ---------- DB helpers ----------
@@ -183,6 +198,19 @@ def init_db() -> None:
                 status TEXT DEFAULT 'Abierto',
                 owner TEXT DEFAULT ''
             );
+
+            -- Secondary indexes: every per-project query filters by project_id,
+            -- and the dependency graph / hierarchy traversals filter by edges.
+            CREATE INDEX IF NOT EXISTS idx_resources_project ON resources(project_id);
+            CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id);
+            CREATE INDEX IF NOT EXISTS idx_tasks_parent ON tasks(parent_id);
+            CREATE INDEX IF NOT EXISTS idx_dependencies_project ON dependencies(project_id);
+            CREATE INDEX IF NOT EXISTS idx_dependencies_pred ON dependencies(project_id, predecessor_id);
+            CREATE INDEX IF NOT EXISTS idx_dependencies_succ ON dependencies(project_id, successor_id);
+            CREATE INDEX IF NOT EXISTS idx_sprints_project ON sprints(project_id);
+            CREATE INDEX IF NOT EXISTS idx_stories_project ON stories(project_id);
+            CREATE INDEX IF NOT EXISTS idx_stories_sprint ON stories(sprint_id);
+            CREATE INDEX IF NOT EXISTS idx_risks_project ON risks(project_id);
             """
         )
         conn.commit()
@@ -307,6 +335,16 @@ class StoryIn(BaseModel):
     points: int = Field(default=0, ge=0)
     assignee: str = ""
     priority: str = "Media"
+
+
+class StoryUpdate(BaseModel):
+    project_id: Optional[int] = None
+    sprint_id: Optional[int] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=220)
+    status: Optional[str] = None
+    points: Optional[int] = Field(default=None, ge=0)
+    assignee: Optional[str] = None
+    priority: Optional[str] = None
 
 
 class RiskIn(BaseModel):
@@ -450,9 +488,22 @@ def calculate_metrics(conn: sqlite3.Connection, project_id: int) -> Dict[str, An
 
 
 def bootstrap_payload(conn: sqlite3.Connection, project_id: Optional[int] = None) -> Dict[str, Any]:
-    if not one(conn, "SELECT id FROM projects LIMIT 1"):
-        seed_database(conn)
     projects = all_rows(conn, "SELECT * FROM projects ORDER BY id")
+    if not projects:
+        # Seeding happens once at startup (lifespan). A normal GET must never
+        # write demo data; return an empty-but-valid payload instead of crashing.
+        return {
+            "projects": [],
+            "current_project": None,
+            "tasks": [],
+            "dependencies": [],
+            "sprints": [],
+            "stories": [],
+            "risks": [],
+            "resources": [],
+            "metrics": {},
+            "defaults": DEFAULT_PARAMETERS,
+        }
     selected = project_id or projects[0]["id"]
     current = get_project_or_404(conn, selected)
     return {
@@ -585,19 +636,17 @@ app.add_middleware(CORSMiddleware, allow_origins=cors_origins(), allow_credentia
 
 @app.get("/api/health")
 def health() -> Dict[str, Any]:
-    return {"status": "ok", "app": "Proyecta360", "time": datetime.utcnow().isoformat()}
+    return {"status": "ok", "app": "Proyecta360", "time": datetime.now(timezone.utc).isoformat()}
 
 
 @app.get("/api/bootstrap")
 def bootstrap(project_id: Optional[int] = None) -> Dict[str, Any]:
-    init_db()
     with db() as conn:
         return bootstrap_payload(conn, project_id)
 
 
 @app.post("/api/seed")
 def seed() -> Dict[str, str]:
-    init_db()
     with db() as conn:
         seed_database(conn)
     return {"message": "Datos base cargados"}
@@ -605,7 +654,6 @@ def seed() -> Dict[str, str]:
 
 @app.post("/api/projects")
 def create_project(payload: ProjectIn) -> Dict[str, Any]:
-    init_db()
     with db() as conn:
         parameters = deep_merge(DEFAULT_PARAMETERS, payload.parameters)
         cur = conn.execute(
@@ -632,6 +680,8 @@ def update_project(project_id: int, payload: ProjectUpdate) -> Dict[str, Any]:
         fields = []
         args = []
         for k, v in data.items():
+            if k not in PROJECT_UPDATE_COLUMNS:
+                raise HTTPException(status_code=400, detail=f"Campo no actualizable: {k}")
             fields.append(f"{k} = ?")
             args.append(iso_value(v))
         if fields:
@@ -669,6 +719,8 @@ def update_task(task_id: int, payload: TaskUpdate) -> Dict[str, Any]:
         data = payload.model_dump(exclude_unset=True)
         fields, args = [], []
         for k, v in data.items():
+            if k not in TASK_UPDATE_COLUMNS:
+                raise HTTPException(status_code=400, detail=f"Campo no actualizable: {k}")
             fields.append(f"{k} = ?")
             args.append(iso_value(v))
         if fields:
@@ -739,19 +791,31 @@ def create_story(payload: StoryIn) -> Dict[str, Any]:
 
 
 @app.put("/api/stories/{story_id}")
-def update_story(story_id: int, payload: StoryIn) -> Dict[str, Any]:
+def update_story(story_id: int, payload: StoryUpdate) -> Dict[str, Any]:
     with db() as conn:
-        if not one(conn, "SELECT id FROM stories WHERE id = ?", (story_id,)):
+        story = one(conn, "SELECT * FROM stories WHERE id = ?", (story_id,))
+        if not story:
             raise HTTPException(status_code=404, detail="Historia no encontrada")
-        get_project_or_404(conn, payload.project_id)
-        if payload.sprint_id:
-            sprint = one(conn, "SELECT project_id FROM sprints WHERE id = ?", (payload.sprint_id,))
+        data = payload.model_dump(exclude_unset=True)
+        project_id = data.get("project_id", story["project_id"])
+        if "project_id" in data:
+            get_project_or_404(conn, project_id)
+        if data.get("sprint_id"):
+            sprint = one(conn, "SELECT project_id FROM sprints WHERE id = ?", (data["sprint_id"],))
             if not sprint:
                 raise HTTPException(status_code=404, detail="Sprint no encontrado")
-            if sprint["project_id"] != payload.project_id:
+            if sprint["project_id"] != project_id:
                 raise HTTPException(status_code=400, detail="El sprint no pertenece al proyecto")
-        conn.execute("UPDATE stories SET project_id=?, sprint_id=?, title=?, status=?, points=?, assignee=?, priority=? WHERE id=?", (payload.project_id, payload.sprint_id, payload.title, payload.status, payload.points, payload.assignee, payload.priority, story_id))
-        conn.commit()
+        fields, args = [], []
+        for k, v in data.items():
+            if k not in STORY_UPDATE_COLUMNS:
+                raise HTTPException(status_code=400, detail=f"Campo no actualizable: {k}")
+            fields.append(f"{k} = ?")
+            args.append(v)
+        if fields:
+            args.append(story_id)
+            conn.execute(f"UPDATE stories SET {', '.join(fields)} WHERE id = ?", tuple(args))
+            conn.commit()
         return one(conn, "SELECT * FROM stories WHERE id = ?", (story_id,))
 
 
