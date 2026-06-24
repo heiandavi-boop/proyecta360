@@ -30,6 +30,8 @@ Primera versión funcional de una herramienta de gestión de proyectos híbrida,
 
 ## Cómo ejecutar
 
+> 📖 Guía completa de ejecución y migraciones: [`docs/GUIA.md`](docs/GUIA.md)
+
 ### 1. Crear entorno virtual
 
 ```bash
@@ -71,16 +73,48 @@ http://127.0.0.1:8000
 ## Estructura
 
 ```text
-proyecta360_ai_project/
-├── app.py                  # Backend FastAPI + SQLite + APIs
-├── proyecta360.db           # Base de datos local, se crea automáticamente
+proyecta360/
+├── app/                      # Backend (paquete FastAPI segmentado)
+│   ├── __init__.py           # expone `app` (uvicorn app:app)
+│   ├── main.py               # create_app(): CORS, lifespan, routers, static
+│   ├── db.py                 # conexión, get_db, run_migrations, helpers
+│   ├── schemas.py            # modelos Pydantic + allow-lists de UPDATE
+│   ├── seed.py               # datos demo (idempotente)
+│   ├── services/             # serializers, metrics, graph, bootstrap, ai
+│   └── routers/              # un APIRouter por dominio
+├── core/                     # configuración compartida
+│   ├── config.py             # Settings (pydantic-settings)
+│   └── defaults.py           # DEFAULT_PARAMETERS
+├── alembic/                  # migraciones de base de datos
+│   ├── env.py
+│   └── versions/             # 0001_baseline, 0002_drop_risks_level, ...
+├── alembic.ini
+├── proyecta360.db            # SQLite local, se crea automáticamente
 ├── requirements.txt
+├── .env.example              # variables de entorno (copiar a .env)
 ├── README.md
-└── static/
-    ├── index.html           # Frontend
-    ├── styles.css           # Estilos tipo SaaS empresarial
-    └── app.js               # Lógica de interfaz y consumo de API
+└── static/                   # Frontend (SPA en ES modules, sin build)
+    ├── index.html
+    ├── styles.css
+    └── js/
+        ├── main.js           # entry point (renderAll, wiring)
+        ├── api.js            # wrapper fetch + endpoints
+        ├── state.js · dom.js · modal.js
+        └── views/            # portfolio, gantt, scrum, risks, resources, parameters, ai
 ```
+
+## Configuración y migraciones
+
+- La configuración se centraliza en `core/config.py` y se puede ajustar por variables de entorno
+  (ver `.env.example`; opcionalmente copia a `.env`).
+- El esquema lo gestiona **Alembic**. Al arrancar, la app aplica automáticamente las migraciones
+  pendientes (`alembic upgrade head`). Comandos manuales:
+
+  ```bash
+  alembic upgrade head            # aplicar migraciones
+  alembic downgrade -1            # revertir la última
+  alembic revision -m "mensaje"   # crear una nueva migración
+  ```
 
 ## API principal
 

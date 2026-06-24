@@ -2,11 +2,14 @@ import pytest
 from fastapi.testclient import TestClient  # noqa: E402
 
 import app as app_module  # noqa: E402
+import app.db as db  # noqa: E402
 
 
 @pytest.fixture
 def client(tmp_path):
-    app_module.DB_PATH = tmp_path / "proyecta360_test.db"
+    # Point the connection + migrations at an isolated temp database. Read at
+    # call time by connect()/run_migrations(), so this fully isolates each test.
+    db.DB_PATH = tmp_path / "proyecta360_test.db"
     with TestClient(app_module.app) as c:
         yield c
 
