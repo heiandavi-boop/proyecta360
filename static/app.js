@@ -864,14 +864,30 @@ function aiAnalysisIncludes(){
   return Object.fromEntries($$('[data-ai-include]').map(input=>[input.dataset.aiInclude, input.checked]));
 }
 async function runAiAnalysis(){
-  const res = await request(`/api/projects/${state.current_project.id}/ai/analyze`,{method:'POST', body:JSON.stringify(aiAnalysisIncludes())});
-  const engine = res.engine_label || (res.mode === 'configured' ? 'IA real' : 'Motor interno');
-  const issues = (res.detected_issues || []).map(item=>`- [${item.severity || 'info'}] ${item.description}`).join('\n');
-  const recs = (res.recommended_actions || []).map(item=>`- [${item.priority || 'medium'}] ${item.title}: ${item.description}`).join('\n');
-  $('#aiOutput').textContent = `${res.analysis_notice || res.demo_notice || ''}\n\nMotor: ${engine}\nSalud: ${res.project_health}\n\n${res.summary}\n\nHallazgos:\n${issues || '- Sin hallazgos relevantes'}\n\nRecomendaciones pendientes:\n${recs || '- Sin recomendaciones'}`;
-  toast('Analisis IA generado');
-  await refreshAiRecommendations();
-  await refreshAiHistory();
+  if(!state.current_project?.id){ toast('Selecciona un proyecto primero'); return; }
+  const btn = $('#btnRunAiAnalysis');
+  const output = $('#aiOutput');
+  const previous = btn?.textContent || '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Analizando...'; }
+  if(output) output.textContent = 'Analizando el proyecto con el motor disponible...';
+  try{
+    const res = await request(`/api/projects/${state.current_project.id}/ai/analyze`,{method:'POST', body:JSON.stringify(aiAnalysisIncludes())});
+    const engine = res.engine_label || (res.mode === 'configured' ? 'IA real' : 'Motor interno');
+    const issues = (res.detected_issues || []).map(item=>`- [${item.severity || 'info'}] ${item.description}`).join('\n');
+    const recs = (res.recommended_actions || []).map(item=>`- [${item.priority || 'medium'}] ${item.title}: ${item.description}`).join('\n');
+    output.textContent = `${res.analysis_notice || res.demo_notice || ''}\n\nMotor: ${engine}\nSalud: ${res.project_health}\n\n${res.summary}\n\nHallazgos:\n${issues || '- Sin hallazgos relevantes'}\n\nRecomendaciones pendientes:\n${recs || '- Sin recomendaciones'}`;
+    toast('Analisis IA generado');
+    await refreshAiRecommendations();
+    await refreshAiHistory();
+    await loadAiSettings();
+  }catch(err){
+    console.error(err);
+    if(output) output.textContent = `No fue posible generar el analisis.\n\nDetalle: ${err.message}`;
+    toast(err.message);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = previous || 'Analizar proyecto completo'; }
+    await loadAiSettings().catch(()=>null);
+  }
 }
 async function aiProjectAsk(){
   const q = $('#aiQuestion')?.value.trim();

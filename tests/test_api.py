@@ -385,7 +385,7 @@ def test_ai_settings_are_saved_and_api_key_is_masked(client):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["status"] == "Conectado"
+    assert body["status"] == "Pendiente de prueba"
     assert body["api_key_masked"] == "sk-****abcd"
     assert "sk-test-secret-abcd" not in str(body)
 
@@ -412,6 +412,7 @@ def test_ai_settings_support_multiple_providers(client):
     assert response.status_code == 200
     body = response.json()
     assert body["provider"] == "openrouter"
+    assert body["status"] == "Pendiente de prueba"
     assert body["provider_name"] == "OpenRouter"
     assert body["model"] == "anthropic/claude-sonnet-4.5"
     assert body["api_key_masked"] == "or-****abcd"
@@ -442,6 +443,23 @@ def test_ai_connection_without_key_uses_internal_rules_mode(client):
     assert response.status_code == 200
     assert response.json()["mode"] == "internal_rules"
     assert response.json()["status"] == "No configurado"
+
+
+def test_ai_analysis_uses_internal_rules_when_key_is_not_verified(client):
+    headers = auth_headers(client)
+    project_id = client.get("/api/bootstrap", headers=headers).json()["current_project"]["id"]
+    saved = client.post(
+        "/api/ai/settings",
+        headers=headers,
+        json={"provider": "openai", "api_key": "sk-not-verified", "model": "gpt-4o-mini"},
+    )
+    response = client.post(f"/api/projects/{project_id}/ai/analyze", headers=headers, json={})
+
+    assert saved.status_code == 200
+    assert saved.json()["status"] == "Pendiente de prueba"
+    assert response.status_code == 200
+    assert response.json()["mode"] == "internal_rules"
+    assert response.json()["recommendation_ids"]
 
 
 def test_ai_internal_rules_analysis_creates_pending_recommendations_and_history(client):

@@ -472,6 +472,9 @@ def build_router(ctx) -> APIRouter:
     def settings_row(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
         return one(conn, "SELECT * FROM ai_settings ORDER BY id LIMIT 1")
 
+    def ai_settings_ready(settings: Optional[Dict[str, Any]]) -> bool:
+        return bool(settings and settings.get("api_key_encrypted") and settings.get("status") == "Conectado")
+
     def openai_compatible_request(settings: Dict[str, Any], messages: List[Dict[str, str]], json_mode: bool = False) -> str:
         provider = settings.get("provider") or "openai"
         definition = provider_definition(provider)
@@ -753,7 +756,7 @@ def build_router(ctx) -> APIRouter:
                 raise HTTPException(status_code=400, detail="Falta configurar: API Key")
             if any(field["name"] == "model" and field.get("required") for field in definition.get("fields", [])) and not model:
                 raise HTTPException(status_code=400, detail="Falta configurar: Modelo")
-            status = "Conectado" if api_key else "No configurado"
+            status = "Pendiente de prueba" if api_key else "No configurado"
             now = datetime.utcnow().isoformat()
             if existing:
                 conn.execute(
@@ -802,10 +805,20 @@ def build_router(ctx) -> APIRouter:
             user = current_user(conn, request)
             snapshot = project_snapshot(conn, project_id, payload)
             settings = settings_row(conn)
-            result = configured_ai_analysis(settings, snapshot) if settings and settings["api_key_encrypted"] else internal_rules_analysis(snapshot)
+            notice = "Motor interno activo: analisis generado con reglas de Proyecta360. Configure y pruebe una API Key para usar IA real."
+            if ai_settings_ready(settings):
+                try:
+                    result = configured_ai_analysis(settings, snapshot)
+                    notice = ""
+                except HTTPException as exc:
+                    now = datetime.utcnow().isoformat()
+                    conn.execute("UPDATE ai_settings SET status='Error', last_test_at=?, last_error=? WHERE id=?", (now, str(exc.detail), settings["id"]))
+                    result = internal_rules_analysis(snapshot)
+                    notice = f"IA real no disponible ({exc.detail}). Se uso motor interno de Proyecta360."
+            else:
+                result = internal_rules_analysis(snapshot)
             persisted = persist_analysis(conn, project_id, user["id"], snapshot, result)
             conn.commit()
-            notice = "" if result.get("mode") == "configured" else "Motor interno activo: analisis generado con reglas de Proyecta360. Configure una API Key para usar IA real."
             return {**result, **persisted, "analysis_notice": notice, "demo_notice": notice}
 
     @router.get("/api/projects/{project_id}/ai/analysis-runs")
@@ -941,15 +954,28 @@ def build_router(ctx) -> APIRouter:
             settings = settings_row(conn)
             if payload.mode == "accion":
                 snapshot = project_snapshot(conn, project_id, AiAnalysisIn())
-                result = configured_ai_analysis(settings, snapshot) if settings and settings["api_key_encrypted"] else internal_rules_analysis(snapshot)
+                if ai_settings_ready(settings):
+                    try:
+                        result = configured_ai_analysis(settings, snapshot)
+                    except HTTPException as exc:
+                        now = datetime.utcnow().isoformat()
+                        conn.execute("UPDATE ai_settings SET status='Error', last_test_at=?, last_error=? WHERE id=?", (now, str(exc.detail), settings["id"]))
+                        result = internal_rules_analysis(snapshot)
+                else:
+                    result = internal_rules_analysis(snapshot)
                 persisted = persist_analysis(conn, project_id, user["id"], snapshot, result)
                 conn.commit()
                 engine = "IA real" if result.get("mode") == "configured" else "motor interno"
                 return {"mode": "accion", "answer": f"Se generaron recomendaciones pendientes con {engine}. Revisa y aprueba antes de aplicar.", **persisted}
-            if settings and settings["api_key_encrypted"]:
+            if ai_settings_ready(settings):
                 snapshot = project_snapshot(conn, project_id, AiAnalysisIn())
                 prompt = f"Responde en espanol, con base solo en este snapshot del proyecto. Pregunta: {payload.message}\nSnapshot: {dumps(snapshot)}"
-                answer = ai_provider_request(settings, [{"role": "user", "content": prompt}], False)
+                try:
+                    answer = ai_provider_request(settings, [{"role": "user", "content": prompt}], False)
+                except HTTPException as exc:
+                    now = datetime.utcnow().isoformat()
+                    conn.execute("UPDATE ai_settings SET status='Error', last_test_at=?, last_error=? WHERE id=?", (now, str(exc.detail), settings["id"]))
+                    answer = answer_project_question(conn, project_id, payload.message)
             else:
                 answer = answer_project_question(conn, project_id, payload.message)
             add_history(conn, project_id, "IA", "Chat IA del proyecto", "Consulta", payload.message[:180], user["name"])
