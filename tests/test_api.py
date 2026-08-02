@@ -372,3 +372,129 @@ def test_portfolio_summary_endpoint(client):
     assert rows
     assert {"name", "project_manager", "progress", "open_risks", "critical_path_tasks"}.issubset(rows[0].keys())
 
+
+def test_ai_settings_are_saved_and_api_key_is_masked(client):
+    response = client.post(
+        "/api/ai/settings",
+        headers=auth_headers(client),
+        json={
+            "provider": "OpenAI",
+            "api_key": "sk-test-secret-abcd",
+            "model": "gpt-4o-mini",
+            "organization_id": "org-demo",
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "Conectado"
+    assert body["api_key_masked"] == "sk-****abcd"
+    assert "sk-test-secret-abcd" not in str(body)
+
+
+def test_ai_connection_without_key_uses_demo_mode(client):
+    response = client.post("/api/ai/test-connection", headers=auth_headers(client), json={})
+
+    assert response.status_code == 200
+    assert response.json()["mode"] == "demo"
+    assert response.json()["status"] == "No configurado"
+
+
+def test_ai_demo_analysis_creates_pending_recommendations_and_history(client):
+    payload = client.get("/api/bootstrap", headers=auth_headers(client)).json()
+    project_id = payload["current_project"]["id"]
+    response = client.post(
+        f"/api/projects/{project_id}/ai/analyze",
+        headers=auth_headers(client),
+        json={"include_schedule": True, "include_risks": True},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["run_id"]
+    assert body["recommendation_ids"]
+
+    recs = client.get(f"/api/projects/{project_id}/ai/recommendations", headers=auth_headers(client)).json()["recommendations"]
+    assert any(r["status"] == "Pendiente" for r in recs)
+
+    history = client.get(f"/api/projects/{project_id}/ai/history", headers=auth_headers(client)).json()["history"]
+    assert history
+    assert history[0]["recommendations_count"] >= 1
+
+
+def test_ai_recommendation_edit_approve_and_apply_rules(client):
+    headers = auth_headers(client)
+    payload = client.get("/api/bootstrap", headers=headers).json()
+    project_id = payload["current_project"]["id"]
+    client.post(f"/api/projects/{project_id}/ai/analyze", headers=headers, json={})
+    recs = client.get(f"/api/projects/{project_id}/ai/recommendations", headers=headers).json()["recommendations"]
+    rec = next(r for r in recs if r["action_type"] == "create_task")
+
+    pending_apply = client.post(f"/api/ai/recommendations/{rec['id']}/apply", headers=headers, json={})
+    assert pending_apply.status_code == 400
+
+    edited_payload = {
+        "title": "Tarea aprobada desde IA",
+        "duration_days": 2,
+        "owner": "Ana López",
+        "status": "Pendiente",
+        "progress": 0,
+    }
+    edited = client.patch(
+        f"/api/ai/recommendations/{rec['id']}",
+        headers=headers,
+        json={"edited_payload": edited_payload},
+    )
+    assert edited.status_code == 200
+    assert edited.json()["edited_payload"]["title"] == "Tarea aprobada desde IA"
+
+    approved = client.post(f"/api/ai/recommendations/{rec['id']}/approve", headers=headers, json={})
+    assert approved.status_code == 200
+    assert approved.json()["status"] == "Aprobada"
+
+    before_count = len(client.get("/api/bootstrap", headers=headers).json()["tasks"])
+    applied = client.post(f"/api/ai/recommendations/{rec['id']}/apply", headers=headers, json={})
+    assert applied.status_code == 200
+    assert applied.json()["applied"] is True
+    after = client.get("/api/bootstrap", headers=headers).json()
+    assert len(after["tasks"]) == before_count + 1
+    assert any(t["title"] == "Tarea aprobada desde IA" for t in after["tasks"])
+
+    rec_history = client.get(f"/api/ai/recommendations/{rec['id']}/history", headers=headers).json()["history"]
+    assert {h["event_type"] for h in rec_history} >= {"Creada", "Editada", "Aprobada", "Aplicada"}
+
+
+def test_ai_rejected_recommendation_cannot_be_applied(client):
+    headers = auth_headers(client)
+    project_id = client.get("/api/bootstrap", headers=headers).json()["current_project"]["id"]
+    client.post(f"/api/projects/{project_id}/ai/analyze", headers=headers, json={})
+    rec = client.get(f"/api/projects/{project_id}/ai/recommendations", headers=headers).json()["recommendations"][0]
+
+    rejected = client.post(f"/api/ai/recommendations/{rec['id']}/reject", headers=headers, json={})
+    apply_response = client.post(f"/api/ai/recommendations/{rec['id']}/apply", headers=headers, json={})
+
+    assert rejected.status_code == 200
+    assert rejected.json()["status"] == "Rechazada"
+    assert apply_response.status_code == 400
+
+
+def test_ai_project_chat_modes(client):
+    headers = auth_headers(client)
+    project_id = client.get("/api/bootstrap", headers=headers).json()["current_project"]["id"]
+    consulta = client.post(
+        f"/api/projects/{project_id}/ai/chat",
+        headers=headers,
+        json={"mode": "consulta", "message": "Como va el proyecto?"},
+    )
+    accion = client.post(
+        f"/api/projects/{project_id}/ai/chat",
+        headers=headers,
+        json={"mode": "accion", "message": "Analiza el proyecto y propon acciones"},
+    )
+
+    assert consulta.status_code == 200
+    assert consulta.json()["mode"] == "consulta"
+    assert accion.status_code == 200
+    assert accion.json()["mode"] == "accion"
+    assert accion.json()["recommendation_ids"]
+

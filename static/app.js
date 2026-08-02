@@ -1,4 +1,4 @@
-const API = '';
+﻿const API = '';
 const state = {
   projects: [], portfolio: [], current_project: null, tasks: [], dependencies: [], sprints: [], stories: [], risks: [], resources: [], components: [], deliverables: [], evidences: [], history: [], conversation_threads: [], conversation_messages: [], active_thread_id: null, selected_task_id: null, gantt_scale: 'days', gantt_zoom: 1, gantt_fit_px: null, gantt_manual_zoom: false, intelligence: {}, metrics: {}, defaults: {}, current_user: null, view: 'gantt'
 };
@@ -471,7 +471,7 @@ function renderView(view){
   $('#kpiStrip')?.classList.toggle('hidden', view === 'portfolio');
   $$('.side-item,.top-tab').forEach(b=>b.classList.toggle('active', b.dataset.view===view || (view==='gantt' && ['Plan Maestro','Gantt'].includes(b.textContent.trim()))));
   if(view==='gantt') setTimeout(drawDependencies, 50);
-  if(view==='ai') setTimeout(()=>$('#aiObjective')?.focus(), 50);
+  if(view==='ai') setTimeout(()=>loadAiSettings(), 50);
 }
 function selectThread(id){
   state.active_thread_id = id;
@@ -750,25 +750,108 @@ function downloadUrl(url){
 }
 async function exportJson(){ downloadUrl(`/api/projects/${state.current_project.id}/export/json`); setTimeout(()=>load(state.current_project.id),800); }
 async function exportHtml(){ downloadUrl(`/api/projects/${state.current_project.id}/export/html`); setTimeout(()=>load(state.current_project.id),800); }
-async function aiAskProject(){
-  const q = $('#aiQuestion').value.trim();
+function setAiTab(tab){
+  $$('.ai-tabs [data-ai-tab]').forEach(btn=>btn.classList.toggle('active', btn.dataset.aiTab === tab));
+  $$('.ai-tab-panel').forEach(panel=>panel.classList.add('hidden'));
+  $(`#aiTab-${tab}`)?.classList.remove('hidden');
+  if(tab === 'settings') loadAiSettings();
+  if(tab === 'recommendations') refreshAiRecommendations();
+  if(tab === 'history') refreshAiHistory();
+}
+async function loadAiSettings(){
+  const form = $('#aiSettingsForm');
+  if(!form) return;
+  const res = await request('/api/ai/settings');
+  form.provider.value = res.provider || 'OpenAI';
+  form.model.value = res.model || 'gpt-4o-mini';
+  form.endpoint.value = res.endpoint || '';
+  form.deployment.value = res.deployment || '';
+  form.organization_id.value = res.organization_id || '';
+  form.api_key.value = '';
+  form.api_key.placeholder = res.api_key_masked || 'No configurada';
+  $('#aiSettingsStatus').textContent = `Estado: ${res.status || 'No configurado'}${res.last_error ? ' | '+res.last_error : ''}`;
+  $('#aiModeNotice').textContent = res.status === 'Conectado' ? 'Proveedor IA configurado' : 'IA en modo demo';
+}
+async function saveAiSettings(){
+  const body = Object.fromEntries(new FormData($('#aiSettingsForm')).entries());
+  const res = await request('/api/ai/settings',{method:'POST', body:JSON.stringify(body)});
+  $('#aiSettingsStatus').textContent = `Estado: ${res.status}`;
+  toast('Configuracion IA guardada');
+  await loadAiSettings();
+}
+async function testAiConnection(){
+  const res = await request('/api/ai/test-connection',{method:'POST', body:JSON.stringify({})});
+  $('#aiSettingsStatus').textContent = `Estado: ${res.status} | ${res.message}`;
+  toast(res.message);
+}
+async function clearAiSettings(){
+  await request('/api/ai/settings',{method:'DELETE'});
+  toast('Configuracion IA eliminada');
+  await loadAiSettings();
+}
+function aiAnalysisIncludes(){
+  return Object.fromEntries($$('[data-ai-include]').map(input=>[input.dataset.aiInclude, input.checked]));
+}
+async function runAiAnalysis(){
+  const res = await request(`/api/projects/${state.current_project.id}/ai/analyze`,{method:'POST', body:JSON.stringify(aiAnalysisIncludes())});
+  $('#aiOutput').textContent = `${res.demo_notice || ''}\n\nSalud: ${res.project_health}\n\n${res.summary}\n\nIssues detectados: ${(res.detected_issues||[]).length}\nRecomendaciones pendientes: ${(res.recommended_actions||[]).length}`;
+  toast('Analisis IA generado');
+  await refreshAiRecommendations();
+  await refreshAiHistory();
+}
+async function aiProjectAsk(){
+  const q = $('#aiQuestion')?.value.trim();
   if(!q){ toast('Escribe una pregunta para el proyecto'); return; }
-  const res = await request('/api/ai/chat',{method:'POST', body:JSON.stringify({project_id:state.current_project.id, question:q, author:state.current_user?.name || 'Usuario'})});
-  $('#aiOutput').textContent = `Pregunta:\n${q}\n\nRespuesta conectada al proyecto:\n${res.answer}`;
-  toast('Respuesta generada con datos del proyecto');
+  const mode = $('#aiChatMode')?.value || 'consulta';
+  const res = await request(`/api/projects/${state.current_project.id}/ai/chat`,{method:'POST', body:JSON.stringify({message:q, mode})});
+  $('#aiOutput').textContent = mode === 'accion'
+    ? `Modo accion:\n${res.answer}\n\nRecomendaciones pendientes generadas: ${(res.recommendation_ids||[]).length}`
+    : `Pregunta:\n${q}\n\nRespuesta conectada al proyecto:\n${res.answer}`;
+  toast(mode === 'accion' ? 'Recomendaciones pendientes creadas' : 'Respuesta IA generada');
+  if(mode === 'accion') await refreshAiRecommendations();
+}
+async function refreshAiRecommendations(){
+  if(!state.current_project) return;
+  const box = $('#aiRecommendationsTable');
+  if(!box) return;
+  const res = await request(`/api/projects/${state.current_project.id}/ai/recommendations`);
+  const rows = res.recommendations || [];
+  box.innerHTML = rows.length ? `<div class="ai-rec-row ai-rec-head"><span>Prioridad</span><span>Accion</span><span>Modulo</span><span>Estado</span><span>Impacto</span><span>Acciones</span></div>${rows.map(r=>`<div class="ai-rec-row"><span class="pill ${r.priority==='high'?'pill-red':r.priority==='low'?'pill-green':'pill-amber'}">${safe(r.priority)}</span><b>${safe(r.title)}</b><span>${safe(r.target_module||'-')}</span><span>${safe(r.status)}</span><span>${safe(r.expected_impact||'-')}</span><span class="ai-row-actions"><button class="btn tiny" data-ai-rec="detail" data-id="${Number(r.id)}">Ver</button><button class="btn tiny" data-ai-rec="edit" data-id="${Number(r.id)}">Editar</button><button class="btn tiny" data-ai-rec="approve" data-id="${Number(r.id)}">Aprobar</button><button class="btn tiny" data-ai-rec="reject" data-id="${Number(r.id)}">Rechazar</button><button class="btn tiny" data-ai-rec="apply" data-id="${Number(r.id)}">Aplicar</button></span></div>`).join('')}` : '<p>No hay recomendaciones IA para este proyecto.</p>';
+}
+async function refreshAiHistory(){
+  if(!state.current_project) return;
+  const list = $('#aiHistoryList');
+  if(!list) return;
+  const res = await request(`/api/projects/${state.current_project.id}/ai/history`);
+  list.innerHTML = (res.history||[]).map(r=>`<div class="history-item"><b>${safe(r.project_health||'Analisis IA')}</b><span>${safe(r.summary||'')}</span><small>${safe(r.started_at||'')} | Issues: ${Number(r.issues_count||0)} | Recs: ${Number(r.recommendations_count||0)} | Aprobadas: ${Number(r.approved_count||0)} | Rechazadas: ${Number(r.rejected_count||0)} | Aplicadas: ${Number(r.applied_count||0)}</small></div>`).join('') || '<p>No hay historial IA.</p>';
+}
+async function handleAiRecommendation(action, id){
+  if(action === 'detail'){
+    const r = await request(`/api/ai/recommendations/${id}`);
+    openModal('Detalle recomendacion IA', `<pre>${safe(JSON.stringify(r, null, 2))}</pre>`);
+    return;
+  }
+  if(action === 'edit'){
+    const r = await request(`/api/ai/recommendations/${id}`);
+    openModal('Editar recomendacion IA', `<form id="aiRecEditForm"><label>Titulo<input name="title" value="${escapeHtml(r.title)}"></label><label>Descripcion<textarea name="description" rows="3">${escapeHtml(r.description||'')}</textarea></label><label>Payload aprobado<textarea name="edited_payload" rows="8">${escapeHtml(JSON.stringify(r.edited_payload || r.proposed_payload || {}, null, 2))}</textarea></label>${modalActions('Guardar cambios')}</form>`);
+    $('#aiRecEditForm').addEventListener('submit', async e=>{
+      e.preventDefault();
+      let edited;
+      try{ edited = JSON.parse(e.target.edited_payload.value || '{}'); }catch(err){ toast('Payload JSON invalido'); return; }
+      await request(`/api/ai/recommendations/${id}`,{method:'PATCH', body:JSON.stringify({title:e.target.title.value, description:e.target.description.value, edited_payload:edited})});
+      closeModal(); toast('Recomendacion editada'); await refreshAiRecommendations();
+    });
+    return;
+  }
+  const verb = {approve:'approve', reject:'reject', apply:'apply'}[action];
+  if(!verb) return;
+  await request(`/api/ai/recommendations/${id}/${verb}`,{method:'POST', body:JSON.stringify({})});
+  toast(action === 'approve' ? 'Recomendacion aprobada' : action === 'reject' ? 'Recomendacion rechazada' : 'Recomendacion aplicada');
+  await load(state.current_project.id);
+  renderView('ai');
+  setAiTab('recommendations');
 }
 
-async function aiGeneratePlan(){
-  const body = {project_id:state.current_project.id, objective:$('#aiObjective').value, execution_methodology:$('#aiMethodology').value, horizon_weeks:Number($('#aiWeeks').value||12), create_records:true};
-  const res = await request('/api/ai/generate-plan',{method:'POST',body:JSON.stringify(body)});
-  $('#aiOutput').textContent = `${res.message}\n\nActividades generadas:\n` + res.generated_tasks.map((t,i)=>`${i+1}. ${t.title} | ${t.phase} | ${t.start_date} → ${t.end_date}`).join('\n');
-  toast('Plan generado y agregado al Gantt'); await load(state.current_project.id); renderView('ai');
-}
-async function aiGenerateReport(){
-  const res = await request('/api/ai/report',{method:'POST',body:JSON.stringify({project_id:state.current_project.id,audience:'Comité Directivo'})});
-  $('#aiOutput').textContent = res.report;
-  renderView('ai');
-}
 function bindEvents(){
   on('#authGateSubmit','click',submitAuthGateLogin);
   document.addEventListener('submit', e=>{
@@ -780,6 +863,12 @@ function bindEvents(){
     }
   });
   document.addEventListener('click', e=>{
+    const aiRec = e.target.closest?.('[data-ai-rec]');
+    if(aiRec){
+      e.preventDefault();
+      e.stopPropagation();
+      return handleAiRecommendation(aiRec.dataset.aiRec, Number(aiRec.dataset.id || 0));
+    }
     const actionEl = e.target.closest?.('[data-action]');
     if(!actionEl) return;
     e.preventDefault();
@@ -824,6 +913,7 @@ function bindEvents(){
     }
   });
   $$('.side-item,.top-tab').forEach(b=>b.addEventListener('click',()=>renderView(b.dataset.view || 'gantt')));
+  $$('.ai-tabs [data-ai-tab]').forEach(b=>b.addEventListener('click',()=>setAiTab(b.dataset.aiTab)));
   on('#projectSelector','change', e=>load(Number(e.target.value)));
   on('#btnReload','click',()=>load(state.current_project.id));
   on('#btnAddTask','click',()=>openTaskModal());
@@ -831,7 +921,7 @@ function bindEvents(){
   on('#btnGanttAddMilestone','click',()=>openTaskModal(null,'milestone'));
   on('#btnGanttIndent','click',()=> state.selected_task_id ? indentTask(state.selected_task_id) : toast('Selecciona una tarea primero'));
   on('#btnGanttOutdent','click',()=> state.selected_task_id ? outdentTask(state.selected_task_id) : toast('Selecciona una tarea primero'));
-  on('#btnAiPlan','click',()=>{ renderView('ai'); $('#view-ai')?.scrollIntoView({behavior:'smooth', block:'start'}); });
+  on('#btnAiPlan','click',()=>{ renderView('ai'); setAiTab('analysis'); $('#view-ai')?.scrollIntoView({behavior:'smooth', block:'start'}); });
   on('#ganttZoomRange','input',e=>{
     state.gantt_fit_px = null;
     state.gantt_manual_zoom = true;
@@ -849,11 +939,15 @@ function bindEvents(){
   on('#btnAddDeliverable','click',openDeliverableModal);
   on('#btnUploadEvidence','click',openEvidenceModal);
   on('#btnUploadEvidenceSecondary','click',openEvidenceModal);
-  on('#btnGeneratePlan','click',aiGeneratePlan);
-  on('#btnGenerateReport','click',aiGenerateReport);
+  on('#btnSaveAiSettings','click',saveAiSettings);
+  on('#btnTestAiConnection','click',testAiConnection);
+  on('#btnClearAiSettings','click',clearAiSettings);
+  on('#btnRunAiAnalysis','click',runAiAnalysis);
+  on('#btnRefreshAiRecommendations','click',refreshAiRecommendations);
+  on('#btnRefreshAiHistory','click',refreshAiHistory);
   on('#btnExportJson','click',exportJson);
   on('#btnExportHtml','click',exportHtml);
-  on('#btnAskAi','click',aiAskProject);
+  on('#btnAskAi','click',aiProjectAsk);
   on('#btnLogin','click',openLoginModal);
   on('#btnLogout','click',logout);
   on('#messageForm','submit',sendMessage);
@@ -888,3 +982,4 @@ if(localStorage.getItem(AUTH_TOKEN_KEY)){
 }else{
   showAuthGate();
 }
+

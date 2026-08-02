@@ -266,6 +266,56 @@ class AiChatIn(BaseModel):
     author: str = "Usuario"
 
 
+class AiSettingsIn(BaseModel):
+    provider: str = Field(default="OpenAI", max_length=40)
+    api_key: str = ""
+    model: str = Field(default="gpt-4o-mini", max_length=120)
+    endpoint: str = ""
+    deployment: str = ""
+    organization_id: str = ""
+
+    @field_validator("provider")
+    @classmethod
+    def validate_provider(cls, value: str) -> str:
+        if value not in {"OpenAI", "Azure OpenAI"}:
+            raise ValueError("Proveedor IA invalido")
+        return value
+
+
+class AiAnalysisIn(BaseModel):
+    include_schedule: bool = True
+    include_risks: bool = True
+    include_resources: bool = True
+    include_deliverables: bool = True
+    include_evidences: bool = True
+    include_budget: bool = True
+    include_history: bool = True
+    include_conversations: bool = True
+
+
+class AiRecommendationUpdate(BaseModel):
+    title: Optional[str] = Field(default=None, min_length=1, max_length=220)
+    description: Optional[str] = None
+    justification: Optional[str] = None
+    expected_impact: Optional[str] = None
+    priority: Optional[str] = None
+    proposed_payload: Optional[Dict[str, Any]] = None
+    edited_payload: Optional[Dict[str, Any]] = None
+
+
+class AiProjectChatIn(BaseModel):
+    message: str = Field(min_length=1, max_length=1600)
+    mode: str = "consulta"
+
+    @field_validator("mode")
+    @classmethod
+    def validate_mode(cls, value: str) -> str:
+        value = value.lower().strip()
+        if value not in {"consulta", "accion"}:
+            raise ValueError("Modo IA invalido")
+        return value
+
+
 class AuthLoginIn(BaseModel):
     email: str
     password: str

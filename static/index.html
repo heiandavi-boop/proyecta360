@@ -1,11 +1,11 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="es">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Proyecta360 | Gestión híbrida PMP + Scrum</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="/static/styles.css?v=20260802-12" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260802-13" />
 </head>
 <body>
   <section class="auth-gate" id="authGate">
@@ -48,7 +48,7 @@
       <button class="side-item" data-view="resources">◉<span>Recursos</span></button>
       <button class="side-item" data-view="conversations">#<span>Conversar</span></button>
       <button class="side-item" data-view="knowledge">K<span>Conocimiento</span></button>
-      <button class="side-item" data-view="ai">✦<span>IA</span></button>
+      <button class="side-item" data-view="ai">✦<span>IA Proyecto</span></button>
       <button class="side-item" data-view="parameters">⚙<span>Parámetros</span></button>
       <div class="side-footer">Modelo híbrido<br/>PMP + Scrum</div>
     </aside>
@@ -71,7 +71,7 @@
           <button class="top-tab" data-view="risks">Riesgos</button>
           <button class="top-tab" data-view="conversations">Conversaciones</button>
           <button class="top-tab" data-view="knowledge">Conocimiento</button>
-          <button class="top-tab" data-view="ai">Reportes IA</button>
+          <button class="top-tab" data-view="ai">IA del Proyecto</button>
         </nav>
         <div class="user-chip auth-chip">
           <span class="sync-dot"></span>
@@ -304,44 +304,70 @@
       </section>
 
       <section id="view-ai" class="view hidden">
-        <div class="ai-grid">
-          <div class="section-card">
-            <div class="section-title">
-              <h2>Asistente IA-ready</h2>
-              <p>Por ahora funciona con un motor determinístico. Más adelante se conecta con OpenAI/Azure OpenAI sin cambiar la arquitectura.</p>
+        <div class="section-card ai-project-card">
+          <div class="section-title horizontal">
+            <div>
+              <h2>IA del Proyecto</h2>
+              <p>Analiza, propone y deja recomendaciones pendientes. Ningun cambio se aplica sin aprobacion humana.</p>
             </div>
-            <label>Objetivo del proyecto</label>
-            <textarea id="aiObjective" rows="5">Implementar una solución empresarial con planificación PMP, ejecución ágil y reportes ejecutivos.</textarea>
-            <div class="form-grid two">
-              <label>Metodología de ejecución
-                <select id="aiMethodology">
-                  <option>Scrum</option>
-                  <option>Kanban</option>
-                  <option>Híbrida</option>
-                  <option>Tradicional</option>
-                </select>
-              </label>
-              <label>Horizonte en semanas
-                <input id="aiWeeks" type="number" value="12" min="4" max="52" />
-              </label>
+            <span class="pill pill-amber" id="aiModeNotice">Modo demo disponible</span>
+          </div>
+          <div class="tabs ai-tabs">
+            <button class="active" type="button" data-ai-tab="settings">Configuracion IA</button>
+            <button type="button" data-ai-tab="analysis">Analisis del proyecto</button>
+            <button type="button" data-ai-tab="recommendations">Recomendaciones IA</button>
+            <button type="button" data-ai-tab="history">Historial IA</button>
+          </div>
+
+          <div class="ai-tab-panel" id="aiTab-settings">
+            <form id="aiSettingsForm" class="form-grid two">
+              <label>Proveedor<select name="provider"><option>OpenAI</option><option>Azure OpenAI</option></select></label>
+              <label>Modelo<input name="model" placeholder="gpt-4o-mini"></label>
+              <label>API Key<input name="api_key" type="password" placeholder="No configurada"></label>
+              <label>Organization ID<input name="organization_id" placeholder="Opcional"></label>
+              <label>Endpoint<input name="endpoint" placeholder="Solo Azure OpenAI"></label>
+              <label>Deployment<input name="deployment" placeholder="Solo Azure OpenAI"></label>
+            </form>
+            <div class="toolbar">
+              <button class="btn primary" id="btnSaveAiSettings">Guardar configuracion</button>
+              <button class="btn ghost" id="btnTestAiConnection">Probar conexion</button>
+              <button class="btn ghost" id="btnClearAiSettings">Limpiar configuracion</button>
             </div>
-            <button class="btn primary" id="btnGeneratePlan">Generar actividades y dependencias</button>
-            <button class="btn ghost" id="btnGenerateReport">Generar informe ejecutivo</button>
-            <button class="btn ghost" id="btnExportJson">Exportar JSON</button>
-            <button class="btn ghost" id="btnExportHtml">Exportar HTML</button>
+            <div class="ai-status" id="aiSettingsStatus">Estado: No configurado</div>
+          </div>
+
+          <div class="ai-tab-panel hidden" id="aiTab-analysis">
+            <div class="ai-check-grid">
+              <label class="inline-check"><input type="checkbox" data-ai-include="include_schedule" checked> Cronograma</label>
+              <label class="inline-check"><input type="checkbox" data-ai-include="include_risks" checked> Riesgos</label>
+              <label class="inline-check"><input type="checkbox" data-ai-include="include_resources" checked> Recursos</label>
+              <label class="inline-check"><input type="checkbox" data-ai-include="include_deliverables" checked> Entregables</label>
+              <label class="inline-check"><input type="checkbox" data-ai-include="include_evidences" checked> Evidencias</label>
+              <label class="inline-check"><input type="checkbox" data-ai-include="include_budget" checked> Presupuesto</label>
+              <label class="inline-check"><input type="checkbox" data-ai-include="include_history" checked> Historial</label>
+              <label class="inline-check"><input type="checkbox" data-ai-include="include_conversations" checked> Conversaciones</label>
+            </div>
+            <button class="btn primary" id="btnRunAiAnalysis">Ejecutar analisis IA</button>
             <div class="chat-box">
               <h3>Chat IA conectado al proyecto</h3>
-              <textarea id="aiQuestion" rows="3" placeholder="Ejemplo: ¿Qué está atrasado? ¿Qué riesgos altos hay? ¿Cómo va el presupuesto?"></textarea>
-              <button class="btn primary" id="btnAskAi">Preguntar al proyecto</button>
+              <select id="aiChatMode"><option value="consulta">Modo consulta</option><option value="accion">Modo accion</option></select>
+              <textarea id="aiQuestion" rows="3" placeholder="Ejemplo: Que esta atrasado? Sugiere acciones para reducir riesgos."></textarea>
+              <button class="btn primary" id="btnAskAi">Enviar al copiloto IA</button>
             </div>
+            <pre id="aiOutput">Aun no hay resultado generado.</pre>
           </div>
-          <div class="section-card report-card">
-            <h2>Resultado IA / Reporte</h2>
-            <pre id="aiOutput">Aún no hay resultado generado.</pre>
+
+          <div class="ai-tab-panel hidden" id="aiTab-recommendations">
+            <div class="toolbar"><button class="btn ghost" id="btnRefreshAiRecommendations">Actualizar recomendaciones</button></div>
+            <div id="aiRecommendationsTable" class="ai-table"></div>
+          </div>
+
+          <div class="ai-tab-panel hidden" id="aiTab-history">
+            <div class="toolbar"><button class="btn ghost" id="btnRefreshAiHistory">Actualizar historial</button></div>
+            <div id="aiHistoryList" class="history-list"></div>
           </div>
         </div>
       </section>
-
       <section id="view-parameters" class="view hidden">
         <div class="section-card">
           <div class="section-title horizontal">
@@ -367,6 +393,7 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="/static/app.js?v=20260802-16"></script>
+  <script src="/static/app.js?v=20260802-19"></script>
 </body>
 </html>
+

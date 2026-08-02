@@ -487,6 +487,76 @@ def init_db() -> None:
                 file_path TEXT NOT NULL,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS ai_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                provider TEXT DEFAULT 'OpenAI',
+                model TEXT DEFAULT 'gpt-4o-mini',
+                endpoint TEXT DEFAULT '',
+                deployment TEXT DEFAULT '',
+                organization_id TEXT DEFAULT '',
+                api_key_encrypted TEXT DEFAULT '',
+                status TEXT DEFAULT 'No configurado',
+                last_test_at TEXT DEFAULT '',
+                last_error TEXT DEFAULT '',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS ai_analysis_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                requested_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                status TEXT DEFAULT 'completed',
+                project_health TEXT DEFAULT '',
+                summary TEXT DEFAULT '',
+                input_snapshot_json TEXT DEFAULT '{}',
+                raw_output_json TEXT DEFAULT '{}',
+                started_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                finished_at TEXT DEFAULT '',
+                error_message TEXT DEFAULT ''
+            );
+            CREATE TABLE IF NOT EXISTS ai_detected_issues (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                analysis_run_id INTEGER REFERENCES ai_analysis_runs(id) ON DELETE CASCADE,
+                project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                type TEXT DEFAULT '',
+                severity TEXT DEFAULT '',
+                description TEXT DEFAULT '',
+                related_entity_type TEXT DEFAULT '',
+                related_entity_id INTEGER,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS ai_recommendations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                analysis_run_id INTEGER REFERENCES ai_analysis_runs(id) ON DELETE SET NULL,
+                project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                title TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                action_type TEXT NOT NULL,
+                target_module TEXT DEFAULT '',
+                target_entity_type TEXT DEFAULT '',
+                target_entity_id INTEGER,
+                justification TEXT DEFAULT '',
+                expected_impact TEXT DEFAULT '',
+                priority TEXT DEFAULT 'medium',
+                proposed_payload_json TEXT DEFAULT '{}',
+                edited_payload_json TEXT DEFAULT '',
+                status TEXT DEFAULT 'Pendiente',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                decided_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                decided_at TEXT DEFAULT '',
+                applied_at TEXT DEFAULT '',
+                error_message TEXT DEFAULT ''
+            );
+            CREATE TABLE IF NOT EXISTS ai_recommendation_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                recommendation_id INTEGER NOT NULL REFERENCES ai_recommendations(id) ON DELETE CASCADE,
+                event_type TEXT NOT NULL,
+                event_detail TEXT DEFAULT '',
+                previous_json TEXT DEFAULT '',
+                new_json TEXT DEFAULT '',
+                user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
