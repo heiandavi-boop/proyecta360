@@ -1,0 +1,10 @@
+.venv/
+.venv310/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
+.DS_Store
+proyecta360.db
+uploads/
+.env

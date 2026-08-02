@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Proyecta360 | Gestión híbrida PMP + Scrum</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260802-11" />
+</head>
+<body>
+  <section class="auth-gate" id="authGate">
+    <div class="auth-hero">
+      <div class="auth-brand">
+        <div class="logo-icon">◇</div>
+        <div>
+          <strong>Proyecta360</strong>
+          <small>Control integral de proyectos</small>
+        </div>
+      </div>
+      <h1>Gestiona proyectos con control, evidencia e IA.</h1>
+      <p>Ingresa para consultar portafolio, plan maestro, riesgos, evidencias, conversaciones y reportes.</p>
+      <div class="auth-points">
+        <span>Plan maestro</span>
+        <span>Riesgos</span>
+        <span>Evidencias</span>
+        <span>Reportes IA</span>
+      </div>
+    </div>
+    <form class="auth-panel" id="authGateForm" method="post" action="/api/auth/login" autocomplete="on">
+      <h2>Ingresar</h2>
+      <p>Usa una cuenta autorizada para acceder a Proyecta360.</p>
+      <label>Correo<input name="email" type="email" autocomplete="username" required></label>
+      <label>Contraseña<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn primary" id="authGateSubmit" type="button">Ingresar</button>
+      <div class="auth-demo">
+        <b>Acceso protegido</b>
+        <span>Ingresa con una cuenta autorizada por el administrador del proyecto.</span>
+      </div>
+    </form>
+  </section>
+
+  <div class="app-shell hidden" id="appShell">
+    <aside class="sidebar">
+      <div class="brand-mark">P360</div>
+      <button class="side-item active" data-view="gantt">⌁<span>Proyectos</span></button>
+      <button class="side-item" data-view="scrum">▦<span>Scrum</span></button>
+      <button class="side-item" data-view="risks">⚠<span>Riesgos</span></button>
+      <button class="side-item" data-view="resources">◉<span>Recursos</span></button>
+      <button class="side-item" data-view="conversations">#<span>Conversar</span></button>
+      <button class="side-item" data-view="knowledge">K<span>Conocimiento</span></button>
+      <button class="side-item" data-view="ai">✦<span>IA</span></button>
+      <button class="side-item" data-view="parameters">⚙<span>Parámetros</span></button>
+      <div class="side-footer">Modelo híbrido<br/>PMP + Scrum</div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <div class="logo">
+          <div class="logo-icon">◇</div>
+          <div>
+            <strong>Proyecta360</strong>
+            <small>Control integral de proyectos</small>
+          </div>
+        </div>
+        <nav class="main-tabs">
+          <button class="top-tab active" data-view="portfolio">Portafolio</button>
+          <button class="top-tab" data-view="gantt">Plan Maestro</button>
+          <button class="top-tab" data-view="gantt">Gantt</button>
+          <button class="top-tab" data-view="scrum">Scrum</button>
+          <button class="top-tab" data-view="resources">Recursos</button>
+          <button class="top-tab" data-view="risks">Riesgos</button>
+          <button class="top-tab" data-view="conversations">Conversaciones</button>
+          <button class="top-tab" data-view="knowledge">Conocimiento</button>
+          <button class="top-tab" data-view="ai">Reportes IA</button>
+        </nav>
+        <div class="user-chip auth-chip">
+          <span class="sync-dot"></span>
+          <span id="authUserLabel">Sin sesión</span>
+          <button class="mini-link" id="btnLogin">Ingresar</button>
+          <button class="mini-link hidden" id="btnLogout">Salir</button>
+        </div>
+      </header>
+
+      <section class="project-header">
+        <div>
+          <div class="eyebrow">Proyecto</div>
+          <h1 id="projectTitle">Cargando...</h1>
+          <p id="projectDescription">Preparando información del proyecto.</p>
+          <div class="meta-row">
+            <span id="projectMethodology" class="pill pill-blue">Híbrida PMP + Scrum</span>
+            <span id="projectStatus" class="pill pill-green">En ejecución</span>
+            <span id="projectDates" class="pill">Fechas</span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <select id="projectSelector"></select>
+          <button class="btn ghost" id="btnNewProject">+ Nuevo proyecto</button>
+          <button class="btn ghost" id="btnOpenParameters">Parametrizar proyecto</button>
+          <button class="btn primary" id="btnAddTask">+ Nueva actividad</button>
+        </div>
+      </section>
+
+      <section class="kpi-strip" id="kpiStrip"></section>
+
+      <section id="view-portfolio" class="view hidden">
+        <div class="section-card">
+          <div class="section-title">
+            <h2>Portafolio de proyectos</h2>
+            <p>Vista ejecutiva de proyectos, avance, salud y metodología.</p>
+          </div>
+          <div id="portfolioGrid" class="portfolio-grid"></div>
+        </div>
+      </section>
+
+      <section id="view-gantt" class="view">
+        <div class="grid-layout gantt-layout">
+          <div class="section-card gantt-card">
+            <div class="section-title horizontal">
+              <div>
+                <h2>Plan Maestro / Gantt</h2>
+                <p>Creación de tareas con sangría, tareas resumen, duración, predecesoras y fecha fin calculada.</p>
+              </div>
+            </div>
+            <div class="gantt-note">ⓘ La fecha fin se calcula automáticamente desde duración + predecesoras.</div>
+            <div class="gantt-toolbar">
+              <div class="gantt-toolgroup">
+                <button class="btn small" id="btnGanttAddTask">+ Tarea</button>
+                <button class="btn small ghost" id="btnGanttAddMilestone">◆ Hito</button>
+              </div>
+              <div class="gantt-toolgroup">
+                <button class="btn small ghost" id="btnGanttIndent">↷ Aplicar sangría</button>
+                <button class="btn small ghost" id="btnGanttOutdent">↶ Quitar sangría</button>
+                <button class="btn small ghost" id="btnReload">⟳ Recalcular cronograma</button>
+              </div>
+              <div class="gantt-toolgroup push">
+                <div class="segmented" id="ganttScaleControl"><button class="active" type="button" data-action="gantt-scale" data-scale="days">Días</button><button type="button" data-action="gantt-scale" data-scale="weeks">Semanas</button><button type="button" data-action="gantt-scale" data-scale="months">Meses</button></div>
+                <button class="btn small primary" id="btnAiPlan">✧ Generar plan IA-ready</button>
+              </div>
+            </div>
+            <div class="gantt-shell">
+              <div class="task-table">
+                <div class="task-head ms-task-head"><span>#</span><span>Nombre de tarea</span><span>Duración</span><span>Inicio</span><span>Fin</span><span>Predecesoras</span><span>Responsable</span><span>Avance</span></div>
+                <div id="taskRows"></div>
+              </div>
+              <div class="timeline-wrap">
+                <div id="timelineHeader" class="timeline-header"></div>
+                <div id="ganttGrid" class="gantt-grid"></div>
+                <svg id="dependencySvg" class="dependency-svg"></svg>
+              </div>
+            </div>
+            <div class="gantt-footer">
+              <span id="ganttSummary">0 tareas</span>
+              <div class="zoom-controls" id="ganttZoomControls"><button type="button" data-action="zoom-out">−</button><input id="ganttZoomRange" type="range" min="0.55" max="1.9" step="0.01" value="1" aria-label="Zoom del Gantt"><button type="button" data-action="zoom-in">＋</button><button type="button" data-action="zoom-fit">⛶ Ajustar</button></div>
+            </div>
+          </div>
+
+          <aside class="right-panel">
+            <div class="panel-card progress-card">
+              <h3>Control del proyecto</h3>
+              <div class="donut" id="progressDonut"><span>0%</span></div>
+              <div class="legend">
+                <span><i class="done"></i>Completado</span>
+                <span><i class="process"></i>En progreso</span>
+                <span><i class="pending"></i>Pendiente</span>
+              </div>
+            </div>
+            <div class="panel-card" id="milestonePanel"></div>
+            <div class="panel-card" id="dependencyPanel"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="view-scrum" class="view hidden">
+        <div class="section-card scrum-card">
+          <div class="section-title horizontal">
+            <div>
+              <h2>Scrum / Sprint actual</h2>
+              <p>La ejecución puede ser Scrum, Kanban, XP o híbrida, pero el control queda consolidado.</p>
+            </div>
+            <button class="btn primary" id="btnAddStory">+ Historia</button>
+          </div>
+          <div class="scrum-layout">
+            <div class="sprint-metrics" id="sprintMetrics"></div>
+            <div class="burndown-card">
+              <h3>Burndown</h3>
+              <div class="chart" id="burndown"></div>
+            </div>
+            <div class="board" id="scrumBoard"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-risks" class="view hidden">
+        <div class="section-card">
+          <div class="section-title horizontal">
+            <div>
+              <h2>Riesgos del proyecto</h2>
+              <p>Matriz simple de probabilidad, impacto, nivel y respuesta.</p>
+            </div>
+            <button class="btn primary" id="btnAddRisk">+ Riesgo</button>
+          </div>
+          <div id="riskTable" class="data-table"></div>
+        </div>
+      </section>
+
+      <section id="view-resources" class="view hidden">
+        <div class="section-card">
+          <div class="section-title horizontal">
+            <div>
+              <h2>Recursos y capacidad</h2>
+              <p>Responsables, roles y disponibilidad para alimentar planeación e IA futura.</p>
+            </div>
+            <button class="btn primary" id="btnAddResource">+ Recurso</button>
+          </div>
+          <div id="resourceGrid" class="resource-grid"></div>
+        </div>
+      </section>
+
+      <section id="view-conversations" class="view hidden">
+        <div class="conversation-layout">
+          <div class="section-card thread-panel">
+            <div class="section-title horizontal">
+              <div>
+                <h2>Conversaciones</h2>
+                <p>Hilos por proyecto, componente, actividad, riesgo o entregable.</p>
+              </div>
+              <button class="btn primary" id="btnAddConversation">+ Hilo</button>
+            </div>
+            <div id="threadList" class="thread-list"></div>
+          </div>
+          <div class="section-card message-panel">
+            <div class="section-title horizontal">
+              <div>
+                <h2 id="activeThreadTitle">Selecciona una conversacion</h2>
+                <p id="activeThreadMeta">Centraliza acuerdos, bloqueos y decisiones del equipo.</p>
+              </div>
+              <span id="activeThreadCategory" class="pill">Seguimiento</span>
+            </div>
+            <div id="messageList" class="message-list"></div>
+            <form id="messageForm" class="message-form">
+              <div class="form-grid two">
+                <label>Autor<select id="messageAuthor"></select></label>
+                <label>Tipo<select id="messageType"><option>Comentario</option><option>Decision</option><option>Bloqueo</option><option>Acuerdo</option><option>Seguimiento</option></select></label>
+              </div>
+              <textarea id="messageText" rows="3" placeholder="Escribe un acuerdo, decision, bloqueo o seguimiento..."></textarea>
+              <div class="form-grid two">
+                <label>Menciones<input id="messageMentions" placeholder="@Investigador principal, @PMO regional"></label>
+                <label>URL evidencia<input id="messageEvidence" placeholder="https://..."></label>
+              </div>
+              <div class="modal-actions"><button class="btn primary" type="submit">Enviar mensaje</button></div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-knowledge" class="view hidden">
+        <div class="knowledge-grid">
+          <div class="section-card">
+            <div class="section-title horizontal">
+              <div>
+                <h2>Componentes y metodologias</h2>
+                <p>Gestion hibrida por componente: tradicional, Scrum, Kanban o hibrida.</p>
+              </div>
+              <button class="btn primary" id="btnAddComponent">+ Componente</button>
+            </div>
+            <div id="componentGrid" class="component-grid"></div>
+          </div>
+          <div class="section-card">
+            <div class="section-title horizontal">
+              <div>
+                <h2>Productos y evidencias</h2>
+                <p>Entregables, soportes y productos de conocimiento generados por el proyecto.</p>
+              </div>
+              <button class="btn ghost" id="btnUploadEvidence">Adjuntar evidencia</button>
+              <button class="btn primary" id="btnAddDeliverable">+ Producto</button>
+            </div>
+            <div id="deliverableTable" class="knowledge-table"></div>
+          </div>
+          <div class="section-card">
+            <div class="section-title horizontal">
+              <div>
+                <h2>Evidencias cargadas</h2>
+                <p>Archivos reales asociados al proyecto, componentes, actividades, riesgos o entregables.</p>
+              </div>
+              <button class="btn primary" id="btnUploadEvidenceSecondary">+ Evidencia</button>
+            </div>
+            <div id="evidenceTable" class="knowledge-table"></div>
+          </div>
+          <div class="section-card">
+            <div class="section-title">
+              <h2>Inteligencia del proyecto</h2>
+              <p>Estado, riesgos detectados, hitos comprometidos y recomendaciones.</p>
+            </div>
+            <div id="intelligencePanel" class="intelligence-panel"></div>
+          </div>
+          <div class="section-card">
+            <div class="section-title">
+              <h2>Historial de cambios</h2>
+              <p>Rastro minimo para saber que se actualizo y cuando.</p>
+            </div>
+            <div id="historyList" class="history-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-ai" class="view hidden">
+        <div class="ai-grid">
+          <div class="section-card">
+            <div class="section-title">
+              <h2>Asistente IA-ready</h2>
+              <p>Por ahora funciona con un motor determinístico. Más adelante se conecta con OpenAI/Azure OpenAI sin cambiar la arquitectura.</p>
+            </div>
+            <label>Objetivo del proyecto</label>
+            <textarea id="aiObjective" rows="5">Implementar una solución empresarial con planificación PMP, ejecución ágil y reportes ejecutivos.</textarea>
+            <div class="form-grid two">
+              <label>Metodología de ejecución
+                <select id="aiMethodology">
+                  <option>Scrum</option>
+                  <option>Kanban</option>
+                  <option>Híbrida</option>
+                  <option>Tradicional</option>
+                </select>
+              </label>
+              <label>Horizonte en semanas
+                <input id="aiWeeks" type="number" value="12" min="4" max="52" />
+              </label>
+            </div>
+            <button class="btn primary" id="btnGeneratePlan">Generar actividades y dependencias</button>
+            <button class="btn ghost" id="btnGenerateReport">Generar informe ejecutivo</button>
+            <button class="btn ghost" id="btnExportJson">Exportar JSON</button>
+            <button class="btn ghost" id="btnExportHtml">Exportar HTML</button>
+            <div class="chat-box">
+              <h3>Chat IA conectado al proyecto</h3>
+              <textarea id="aiQuestion" rows="3" placeholder="Ejemplo: ¿Qué está atrasado? ¿Qué riesgos altos hay? ¿Cómo va el presupuesto?"></textarea>
+              <button class="btn primary" id="btnAskAi">Preguntar al proyecto</button>
+            </div>
+          </div>
+          <div class="section-card report-card">
+            <h2>Resultado IA / Reporte</h2>
+            <pre id="aiOutput">Aún no hay resultado generado.</pre>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-parameters" class="view hidden">
+        <div class="section-card">
+          <div class="section-title horizontal">
+            <div>
+              <h2>Parametrización del proyecto</h2>
+              <p>Bloque central para configurar modelo de control, metodología, calendario, fases, estados, matriz de riesgo e IA.</p>
+            </div>
+            <button class="btn primary" id="btnSaveParametersInline">Guardar parámetros</button>
+          </div>
+          <div id="parametersForm" class="parameters-form"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal hidden" id="entityModal">
+    <div class="modal-backdrop" data-close="modal"></div>
+    <div class="modal-card">
+      <button class="modal-close" type="button" data-close="modal">×</button>
+      <h2 id="modalTitle">Formulario</h2>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+  <script src="/static/app.js?v=20260802-13"></script>
+</body>
+</html>
