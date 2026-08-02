@@ -329,14 +329,14 @@
               <label class="inline-check"><input type="checkbox" data-ai-include="include_history" checked> Historial</label>
               <label class="inline-check"><input type="checkbox" data-ai-include="include_conversations" checked> Conversaciones</label>
             </div>
-            <button class="btn primary" id="btnRunAiAnalysis">Analizar proyecto completo</button>
+            <button class="btn primary" id="btnRunAiAnalysis" type="button" data-action="run-ai-analysis">Analizar proyecto completo</button>
+            <pre id="aiOutput">Aun no hay resultado generado.</pre>
             <div class="chat-box">
               <h3>Chat IA conectado al proyecto</h3>
               <select id="aiChatMode"><option value="consulta">Modo consulta</option><option value="accion">Modo accion</option></select>
               <textarea id="aiQuestion" rows="3" placeholder="Ejemplo: Que esta atrasado? Sugiere acciones para reducir riesgos."></textarea>
               <button class="btn primary" id="btnAskAi">Enviar al copiloto IA</button>
             </div>
-            <pre id="aiOutput">Aun no hay resultado generado.</pre>
           </div>
 
           <div class="ai-tab-panel hidden" id="aiTab-recommendations">
@@ -388,7 +388,7 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="/static/app.js?v=20260802-28"></script>
+  <script src="/static/app.js?v=20260802-29"></script>
 </body>
 </html>
 
