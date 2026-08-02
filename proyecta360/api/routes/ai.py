@@ -85,20 +85,188 @@ def build_router(ctx) -> APIRouter:
             return "****"
         return f"{value[:3]}****{value[-4:]}"
 
+    AI_PROVIDERS: Dict[str, Dict[str, Any]] = {
+        "openai": {
+            "name": "OpenAI / ChatGPT",
+            "default_model": "gpt-5.6-terra",
+            "model_options": [
+                {"value": "gpt-5.6-sol", "label": "GPT-5.6 Sol"},
+                {"value": "gpt-5.6-terra", "label": "GPT-5.6 Terra"},
+                {"value": "gpt-5.6-luna", "label": "GPT-5.6 Luna"},
+                {"value": "gpt-5.6", "label": "GPT-5.6"},
+                {"value": "gpt-4o", "label": "GPT-4o"},
+                {"value": "gpt-4o-mini", "label": "GPT-4o mini"},
+            ],
+            "api_style": "openai_compatible",
+            "base_url": "https://api.openai.com/v1",
+            "fields": [
+                {"name": "api_key", "label": "API Key", "type": "password", "required": True},
+                {"name": "model", "label": "Modelo", "type": "select", "required": True},
+                {"name": "organization", "label": "Organization ID", "type": "text", "required": False},
+                {"name": "project", "label": "Project ID", "type": "text", "required": False},
+            ],
+        },
+        "anthropic": {
+            "name": "Anthropic / Claude",
+            "default_model": "claude-sonnet-5",
+            "model_options": [
+                {"value": "claude-fable-5", "label": "Claude Fable 5"},
+                {"value": "claude-opus-5", "label": "Claude Opus 5"},
+                {"value": "claude-sonnet-5", "label": "Claude Sonnet 5"},
+                {"value": "claude-haiku-4-5", "label": "Claude Haiku 4.5"},
+                {"value": "claude-mythos-preview", "label": "Claude Mythos Preview"},
+            ],
+            "api_style": "anthropic",
+            "base_url": "https://api.anthropic.com",
+            "fields": [
+                {"name": "api_key", "label": "API Key", "type": "password", "required": True},
+                {"name": "model", "label": "Modelo", "type": "select", "required": True},
+            ],
+        },
+        "gemini": {
+            "name": "Google Gemini",
+            "default_model": "gemini-3-pro",
+            "model_options": [
+                {"value": "gemini-3-pro", "label": "Gemini 3 Pro"},
+                {"value": "gemini-3-flash", "label": "Gemini 3 Flash"},
+                {"value": "gemini-3-flash-lite", "label": "Gemini 3 Flash Lite"},
+                {"value": "gemini-2.5-pro", "label": "Gemini 2.5 Pro"},
+                {"value": "gemini-2.5-flash", "label": "Gemini 2.5 Flash"},
+                {"value": "gemini-2.5-flash-lite", "label": "Gemini 2.5 Flash Lite"},
+            ],
+            "api_style": "gemini",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta",
+            "fields": [
+                {"name": "api_key", "label": "API Key", "type": "password", "required": True},
+                {"name": "model", "label": "Modelo", "type": "select", "required": True},
+            ],
+        },
+        "deepseek": {
+            "name": "DeepSeek",
+            "default_model": "deepseek-chat",
+            "model_options": [
+                {"value": "deepseek-chat", "label": "DeepSeek Chat"},
+                {"value": "deepseek-reasoner", "label": "DeepSeek Reasoner"},
+            ],
+            "api_style": "openai_compatible",
+            "base_url": "https://api.deepseek.com",
+            "fields": [
+                {"name": "api_key", "label": "API Key", "type": "password", "required": True},
+                {"name": "model", "label": "Modelo", "type": "select", "required": True},
+            ],
+        },
+        "xai": {
+            "name": "xAI / Grok",
+            "default_model": "grok-4.5",
+            "model_options": [
+                {"value": "grok-4.5", "label": "Grok 4.5"},
+                {"value": "grok-4.5-latest", "label": "Grok 4.5 latest"},
+                {"value": "grok-4", "label": "Grok 4"},
+                {"value": "grok-4-latest", "label": "Grok 4 latest"},
+            ],
+            "api_style": "openai_compatible",
+            "base_url": "https://api.x.ai/v1",
+            "fields": [
+                {"name": "api_key", "label": "API Key", "type": "password", "required": True},
+                {"name": "model", "label": "Modelo", "type": "select", "required": True},
+            ],
+        },
+        "mistral": {
+            "name": "Mistral AI",
+            "default_model": "mistral-large-latest",
+            "model_options": [
+                {"value": "mistral-large-latest", "label": "Mistral Large latest"},
+                {"value": "mistral-medium-latest", "label": "Mistral Medium latest"},
+                {"value": "mistral-small-latest", "label": "Mistral Small latest"},
+                {"value": "ministral-8b-latest", "label": "Ministral 8B latest"},
+                {"value": "ministral-3b-latest", "label": "Ministral 3B latest"},
+                {"value": "codestral-latest", "label": "Codestral latest"},
+            ],
+            "api_style": "openai_compatible",
+            "base_url": "https://api.mistral.ai/v1",
+            "fields": [
+                {"name": "api_key", "label": "API Key", "type": "password", "required": True},
+                {"name": "model", "label": "Modelo", "type": "select", "required": True},
+            ],
+        },
+        "openrouter": {
+            "name": "OpenRouter",
+            "default_model": "openai/gpt-5.6-terra",
+            "model_options": [
+                {"value": "openai/gpt-5.6-sol", "label": "OpenAI GPT-5.6 Sol"},
+                {"value": "openai/gpt-5.6-terra", "label": "OpenAI GPT-5.6 Terra"},
+                {"value": "anthropic/claude-sonnet-5", "label": "Anthropic Claude Sonnet 5"},
+                {"value": "anthropic/claude-opus-5", "label": "Anthropic Claude Opus 5"},
+                {"value": "google/gemini-3-pro", "label": "Google Gemini 3 Pro"},
+                {"value": "x-ai/grok-4.5", "label": "xAI Grok 4.5"},
+                {"value": "deepseek/deepseek-chat", "label": "DeepSeek Chat"},
+                {"value": "mistralai/mistral-large", "label": "Mistral Large"},
+            ],
+            "api_style": "openai_compatible",
+            "base_url": "https://openrouter.ai/api/v1",
+            "fields": [
+                {"name": "api_key", "label": "API Key", "type": "password", "required": True},
+                {"name": "model", "label": "Modelo", "type": "select", "required": True},
+                {"name": "site_url", "label": "Site URL", "type": "url", "required": False},
+                {"name": "app_name", "label": "Nombre de app", "type": "text", "required": False},
+            ],
+        },
+        "together": {
+            "name": "Together AI",
+            "default_model": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+            "model_options": [
+                {"value": "meta-llama/Llama-3.3-70B-Instruct-Turbo", "label": "Llama 3.3 70B Instruct Turbo"},
+                {"value": "meta-llama/Llama-3.1-405B-Instruct-Turbo", "label": "Llama 3.1 405B Instruct Turbo"},
+                {"value": "Qwen/Qwen2.5-72B-Instruct-Turbo", "label": "Qwen 2.5 72B Instruct Turbo"},
+                {"value": "deepseek-ai/DeepSeek-V3", "label": "DeepSeek V3"},
+                {"value": "deepseek-ai/DeepSeek-R1", "label": "DeepSeek R1"},
+                {"value": "mistralai/Mixtral-8x7B-Instruct-v0.1", "label": "Mixtral 8x7B Instruct"},
+            ],
+            "api_style": "openai_compatible",
+            "base_url": "https://api.together.xyz/v1",
+            "fields": [
+                {"name": "api_key", "label": "API Key", "type": "password", "required": True},
+                {"name": "model", "label": "Modelo", "type": "select", "required": True},
+            ],
+        },
+        "custom_openai": {
+            "name": "Compatible OpenAI / Personalizado",
+            "default_model": "",
+            "api_style": "openai_compatible",
+            "base_url": "",
+            "fields": [
+                {"name": "api_key", "label": "API Key", "type": "password", "required": True},
+                {"name": "model", "label": "Modelo", "type": "text", "required": True},
+                {"name": "base_url", "label": "Base URL", "type": "url", "required": True, "placeholder": "https://api.proveedor.com/v1"},
+            ],
+        },
+    }
+
+    def provider_definition(provider: str) -> Dict[str, Any]:
+        return AI_PROVIDERS.get(provider) or AI_PROVIDERS["openai"]
+
     def serialize_ai_settings(row: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         if not row:
             return {
-                "model": "gpt-4o-mini", "api_key_masked": "", "status": "No configurado",
-                "last_test_at": "", "last_error": "",
+                "provider": "openai", "provider_name": AI_PROVIDERS["openai"]["name"],
+                "model": "gpt-4o-mini", "api_key_masked": "", "config": {},
+                "status": "No configurado", "last_test_at": "", "last_error": "",
+                "providers": AI_PROVIDERS,
             }
+        provider = row.get("provider") or "openai"
+        config = loads(row.get("config_json") or "{}", {})
         return {
             "id": row["id"],
+            "provider": provider,
+            "provider_name": provider_definition(provider)["name"],
             "model": row["model"],
             "api_key_masked": mask_api_key(row["api_key_encrypted"]),
+            "config": config,
             "status": row["status"],
             "last_test_at": row["last_test_at"],
             "last_error": row["last_error"],
             "updated_at": row["updated_at"],
+            "providers": AI_PROVIDERS,
         }
 
     def rec_history(conn: sqlite3.Connection, recommendation_id: int, event_type: str, user_id: Optional[int], detail: str = "", previous: Any = None, new: Any = None) -> None:
@@ -137,70 +305,198 @@ def build_router(ctx) -> APIRouter:
             snapshot["conversations"] = all_rows(conn, "SELECT * FROM conversation_messages WHERE project_id = ? ORDER BY created_at DESC LIMIT 30", (project_id,))
         return snapshot
 
-    def demo_ai_analysis(snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    def internal_rules_analysis(snapshot: Dict[str, Any]) -> Dict[str, Any]:
         metrics = snapshot.get("metrics", {})
         project = snapshot.get("project", {})
+        tasks = snapshot.get("tasks", [])
+        risks = snapshot.get("risks", [])
+        deliverables = snapshot.get("deliverables", [])
+        evidences = snapshot.get("evidences", [])
+        conversations = snapshot.get("conversations", [])
+        today = date.today().isoformat()
         issues: List[Dict[str, Any]] = []
         recs: List[Dict[str, Any]] = []
+
+        def add_issue(issue_type: str, severity: str, description: str, entity_type: str = "project", entity_id: Optional[int] = None) -> None:
+            issues.append({
+                "type": issue_type,
+                "severity": severity,
+                "description": description,
+                "related_entity_type": entity_type,
+                "related_entity_id": entity_id or project.get("id"),
+            })
+
+        def add_rec(action_type: str, target_module: str, title: str, description: str, justification: str, expected_impact: str, priority: str, payload: Dict[str, Any], target_entity_type: str = "", target_entity_id: Optional[int] = None) -> None:
+            recs.append({
+                "action_type": action_type,
+                "target_module": target_module,
+                "target_entity_type": target_entity_type,
+                "target_entity_id": target_entity_id,
+                "title": title,
+                "description": description,
+                "justification": justification,
+                "expected_impact": expected_impact,
+                "priority": priority,
+                "proposed_payload": payload,
+            })
+
+        overdue_tasks = [t for t in tasks if t.get("end_date") and t.get("end_date") < today and int(t.get("progress") or 0) < 100]
+        blocked_messages = [c for c in conversations if any(word in str(c.get("message", "")).lower() for word in ["bloque", "impedimento", "critico", "urgente"])]
+        ownerless_tasks = [t for t in tasks if not str(t.get("owner") or "").strip() and t.get("task_type") != "summary"]
+        open_high_risks = [r for r in risks if r.get("level") == "Alto" and r.get("status") != "Cerrado"]
+        risks_without_plans = [r for r in open_high_risks if not str(r.get("mitigation_plan") or "").strip() or not str(r.get("contingency_plan") or "").strip()]
+        deliverables_without_evidence = [
+            d for d in deliverables
+            if d.get("due_date") and d.get("due_date") <= today and not str(d.get("evidence_url") or "").strip() and d.get("status") != "Aprobado"
+        ]
+        task_progress = float(metrics.get("progress") or 0)
+        budget = float(metrics.get("budget") or 0)
+        spent = float(metrics.get("spent") or 0)
+        budget_execution = (spent / budget * 100) if budget > 0 else 0
+
         if metrics.get("delayed_tasks", 0):
-            issues.append({"type": "schedule_delay", "severity": "high", "description": f"Hay {metrics['delayed_tasks']} actividades atrasadas o con bajo avance.", "related_entity_type": "project", "related_entity_id": project.get("id")})
-            recs.append({
-                "action_type": "create_task", "target_module": "gantt", "title": "Plan de recuperación del cronograma",
-                "description": "Crear una actividad de recuperación para destrabar tareas atrasadas.",
-                "justification": "Permite asignar responsable, duración y seguimiento específico al atraso.",
-                "expected_impact": "Reduce exposición de fechas críticas y mejora control semanal.",
-                "priority": "high",
-                "proposed_payload": {"title": "Plan de recuperación del cronograma", "duration_days": 3, "owner": project.get("project_manager") or "PM", "status": "Pendiente", "progress": 0},
-            })
-        high_risks = metrics.get("high_risks", 0)
-        if high_risks:
-            issues.append({"type": "open_high_risks", "severity": "high", "description": f"Existen {high_risks} riesgos altos abiertos.", "related_entity_type": "risk", "related_entity_id": None})
-            recs.append({
-                "action_type": "create_risk", "target_module": "riesgos", "title": "Riesgo de seguimiento ejecutivo semanal",
-                "description": "Registrar un riesgo de gobierno para riesgos altos sin control suficiente.",
-                "justification": "Formaliza seguimiento, propietario y respuesta frente al comité.",
-                "expected_impact": "Mejora visibilidad y tratamiento de riesgos críticos.",
-                "priority": "high",
-                "proposed_payload": {"title": "Seguimiento ejecutivo de riesgos altos", "probability": 3, "impact": 4, "response": "Mitigar", "owner": project.get("project_manager") or "PM", "status": "Abierto"},
-            })
+            add_issue("schedule_delay", "high", f"Hay {metrics['delayed_tasks']} actividades atrasadas o con bajo avance.")
+            add_rec(
+                "create_task", "gantt", "Plan de recuperacion del cronograma",
+                "Crear una actividad de recuperacion para coordinar el cierre de tareas atrasadas.",
+                "El atraso necesita responsable, fecha y seguimiento propio para evitar que se diluya en el plan.",
+                "Reduce exposicion de fechas criticas y mejora control semanal.",
+                "high",
+                {"title": "Plan de recuperacion del cronograma", "duration_days": 3, "owner": project.get("project_manager") or "PM", "status": "Pendiente", "progress": 0},
+            )
+        if overdue_tasks:
+            first = overdue_tasks[0]
+            add_issue("overdue_task", "high", f"La actividad '{first.get('title')}' esta vencida y no completada.", "task", first.get("id"))
+        if open_high_risks:
+            add_issue("open_high_risks", "high", f"Existen {len(open_high_risks)} riesgos altos abiertos.", "risk", open_high_risks[0].get("id"))
+            add_rec(
+                "create_task", "riesgos", "Revision ejecutiva de riesgos altos",
+                "Agendar una revision corta para validar responsables, respuestas y fechas de tratamiento.",
+                "Los riesgos altos abiertos requieren visibilidad y seguimiento periodico.",
+                "Mejora el control de exposiciones criticas antes de que afecten cronograma o alcance.",
+                "high",
+                {"title": "Revision ejecutiva de riesgos altos", "duration_days": 1, "owner": project.get("project_manager") or "PM", "status": "Pendiente", "progress": 0},
+            )
+        if risks_without_plans:
+            risk = risks_without_plans[0]
+            add_issue("risk_without_plan", "medium", f"El riesgo '{risk.get('title')}' no tiene mitigacion o contingencia completa.", "risk", risk.get("id"))
+            add_rec(
+                "add_mitigation_plan", "riesgos", "Completar plan de mitigacion",
+                "Agregar o fortalecer el plan de mitigacion del riesgo prioritario.",
+                "Un riesgo alto sin plan no permite controlar acciones preventivas.",
+                "Aumenta trazabilidad y reduce improvisacion ante materializacion del riesgo.",
+                "medium",
+                {"risk_id": risk.get("id"), "mitigation_plan": "Definir acciones preventivas, responsable, fecha objetivo e indicador de seguimiento."},
+                "risk", risk.get("id"),
+            )
         if metrics.get("critical_path_tasks", 0):
-            recs.append({
-                "action_type": "create_task", "target_module": "gantt", "title": "Revisión de ruta crítica",
-                "description": "Crear una tarea de revisión para validar dependencias y fechas críticas.",
-                "justification": "La ruta crítica requiere control explícito antes de afectar hitos.",
-                "expected_impact": "Mejora predictibilidad del cierre del proyecto.",
-                "priority": "medium",
-                "proposed_payload": {"title": "Revisión de ruta crítica", "duration_days": 1, "owner": project.get("project_manager") or "PM", "status": "Pendiente", "progress": 0},
-            })
+            add_issue("critical_path_active", "medium", f"Hay {metrics['critical_path_tasks']} tareas abiertas con dependencias en ruta critica.")
+            add_rec(
+                "create_task", "gantt", "Revision de ruta critica",
+                "Validar dependencias, fechas y responsables de actividades criticas.",
+                "La ruta critica requiere control explicito antes de afectar hitos.",
+                "Mejora predictibilidad del cierre del proyecto.",
+                "medium",
+                {"title": "Revision de ruta critica", "duration_days": 1, "owner": project.get("project_manager") or "PM", "status": "Pendiente", "progress": 0},
+            )
+        if ownerless_tasks:
+            task = ownerless_tasks[0]
+            add_issue("task_without_owner", "medium", f"Hay {len(ownerless_tasks)} actividades sin responsable asignado.", "task", task.get("id"))
+        if deliverables_without_evidence:
+            deliverable = deliverables_without_evidence[0]
+            add_issue("deliverable_without_evidence", "medium", f"El entregable '{deliverable.get('name')}' esta vencido o por vencer sin evidencia.", "deliverable", deliverable.get("id"))
+            add_rec(
+                "request_evidence", "entregables", "Solicitar evidencia de entregables pendientes",
+                "Pedir soporte de cumplimiento para entregables vencidos o criticos.",
+                "La evidencia permite cerrar trazabilidad y validar avance real.",
+                "Reduce incertidumbre sobre avance fisico y aceptacion.",
+                "medium",
+                {"deliverable_id": deliverable.get("id"), "description": "Cargar evidencia de avance, aprobacion o entrega."},
+                "deliverable", deliverable.get("id"),
+            )
+        if budget > 0 and budget_execution > task_progress + 15:
+            add_issue("budget_ahead_of_progress", "medium", f"El presupuesto ejecutado estimado ({budget_execution:.1f}%) supera el avance fisico ({task_progress:.1f}%).")
+            add_rec(
+                "create_risk", "riesgos", "Riesgo de desviacion presupuesto-avance",
+                "Registrar un riesgo para monitorear diferencia entre ejecucion financiera y avance fisico.",
+                "La brecha puede indicar sobrecosto, avance no documentado o mala distribucion presupuestal.",
+                "Permite activar seguimiento financiero y acciones correctivas tempranas.",
+                "medium",
+                {"title": "Desviacion entre presupuesto ejecutado y avance fisico", "probability": 3, "impact": 3, "response": "Mitigar", "owner": project.get("project_manager") or "PM", "status": "Abierto"},
+            )
+        if blocked_messages:
+            add_issue("conversation_blocker", "medium", f"Hay {len(blocked_messages)} conversaciones recientes con posibles bloqueos o urgencias.", "conversation", blocked_messages[0].get("id"))
+            add_rec(
+                "create_task", "conversaciones", "Gestionar bloqueos reportados",
+                "Crear una actividad de seguimiento para resolver bloqueos mencionados en conversaciones.",
+                "Los bloqueos conversacionales pueden quedar fuera del cronograma si no se convierten en accion.",
+                "Aumenta trazabilidad y cierre de impedimentos.",
+                "medium",
+                {"title": "Gestionar bloqueos reportados", "duration_days": 1, "owner": project.get("project_manager") or "PM", "status": "Pendiente", "progress": 0},
+            )
+        if not evidences and tasks:
+            add_issue("low_evidence_traceability", "low", "No se encontraron evidencias cargadas para el proyecto.")
         if not recs:
-            recs.append({
-                "action_type": "create_alert", "target_module": "ia", "title": "Mantener seguimiento preventivo",
-                "description": "El proyecto no muestra alertas críticas en modo demo.",
-                "justification": "Una revisión preventiva mantiene actualizada la información estratégica.",
-                "expected_impact": "Sostiene trazabilidad y anticipación de desviaciones.",
-                "priority": "low",
-                "proposed_payload": {"message": "Mantener seguimiento preventivo semanal"},
-            })
-        health = "En riesgo" if issues else metrics.get("health", "Saludable")
+            add_rec(
+                "create_task", "gantt", "Seguimiento preventivo semanal",
+                "Crear una actividad ligera para revisar avance, riesgos y evidencias.",
+                "Aunque no hay alertas criticas, la revision preventiva mantiene el proyecto actualizado.",
+                "Sostiene trazabilidad y anticipacion de desviaciones.",
+                "low",
+                {"title": "Seguimiento preventivo semanal", "duration_days": 1, "owner": project.get("project_manager") or "PM", "status": "Pendiente", "progress": 0},
+            )
+        high_count = len([i for i in issues if i["severity"] == "high"])
+        medium_count = len([i for i in issues if i["severity"] == "medium"])
+        if high_count >= 3 or metrics.get("health") == "Crítico":
+            health = "Critico"
+        elif high_count or medium_count >= 2 or metrics.get("health") == "En riesgo":
+            health = "En riesgo"
+        elif medium_count or issues:
+            health = "En observacion"
+        else:
+            health = "Saludable"
         return {
             "project_health": health,
-            "summary": f"Analisis demo de {project.get('name')}: avance {metrics.get('progress', 0)}%, {metrics.get('open_risks', 0)} riesgos abiertos y {metrics.get('critical_path_tasks', 0)} tareas en ruta critica.",
+            "summary": (
+                f"Analisis generado por motor interno para {project.get('name')}: avance {metrics.get('progress', 0)}%, "
+                f"{metrics.get('open_risks', 0)} riesgos abiertos, {metrics.get('high_risks', 0)} altos, "
+                f"{metrics.get('delayed_tasks', 0)} actividades atrasadas y {metrics.get('critical_path_tasks', 0)} tareas en ruta critica. "
+                f"Se detectaron {len(issues)} hallazgos y se generaron {len(recs)} recomendaciones pendientes de aprobacion humana."
+            ),
             "detected_issues": issues,
             "recommended_actions": recs,
-            "mode": "demo",
+            "mode": "internal_rules",
+            "engine_label": "Motor interno",
         }
 
     def settings_row(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
         return one(conn, "SELECT * FROM ai_settings ORDER BY id LIMIT 1")
 
-    def chatgpt_request(api_key: str, model: str, messages: List[Dict[str, str]], json_mode: bool = False) -> str:
+    def openai_compatible_request(settings: Dict[str, Any], messages: List[Dict[str, str]], json_mode: bool = False) -> str:
+        provider = settings.get("provider") or "openai"
+        definition = provider_definition(provider)
+        config = loads(settings.get("config_json") or "{}", {})
+        base_url = (config.get("base_url") or definition.get("base_url") or "").rstrip("/")
+        api_key = settings["api_key_encrypted"]
+        model = settings["model"] or definition.get("default_model") or "gpt-4o-mini"
         payload: Dict[str, Any] = {"model": model or "gpt-4o-mini", "messages": messages, "temperature": 0.2}
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+        if provider == "openai":
+            if config.get("organization"):
+                headers["OpenAI-Organization"] = config["organization"]
+            if config.get("project"):
+                headers["OpenAI-Project"] = config["project"]
+        if provider == "openrouter":
+            if config.get("site_url"):
+                headers["HTTP-Referer"] = config["site_url"]
+            if config.get("app_name"):
+                headers["X-Title"] = config["app_name"]
         try:
             response = httpx.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                f"{base_url}/chat/completions",
+                headers=headers,
                 json=payload,
                 timeout=45,
             )
@@ -209,11 +505,78 @@ def build_router(ctx) -> APIRouter:
             return data["choices"][0]["message"]["content"]
         except httpx.HTTPStatusError as exc:
             detail = exc.response.text[:500]
-            raise HTTPException(status_code=400, detail=f"Error de ChatGPT/OpenAI: {detail}")
+            raise HTTPException(status_code=400, detail=f"Error de {definition['name']}: {detail}")
         except Exception as exc:
-            raise HTTPException(status_code=400, detail=f"No fue posible conectar con ChatGPT: {exc}")
+            raise HTTPException(status_code=400, detail=f"No fue posible conectar con {definition['name']}: {exc}")
 
-    def chatgpt_analysis(settings: Dict[str, Any], snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    def anthropic_request(settings: Dict[str, Any], messages: List[Dict[str, str]], json_mode: bool = False) -> str:
+        config = loads(settings.get("config_json") or "{}", {})
+        base_url = (config.get("base_url") or AI_PROVIDERS["anthropic"]["base_url"]).rstrip("/")
+        system = "\n".join(m["content"] for m in messages if m.get("role") == "system")
+        user_messages = [{"role": "assistant" if m.get("role") == "assistant" else "user", "content": m.get("content", "")} for m in messages if m.get("role") != "system"]
+        if json_mode:
+            user_messages.append({"role": "user", "content": "Responde exclusivamente con un objeto JSON valido, sin Markdown."})
+        payload: Dict[str, Any] = {"model": settings["model"] or AI_PROVIDERS["anthropic"]["default_model"], "messages": user_messages, "max_tokens": 2048, "temperature": 0.2}
+        if system:
+            payload["system"] = system
+        try:
+            response = httpx.post(
+                f"{base_url}/v1/messages",
+                headers={"x-api-key": settings["api_key_encrypted"], "anthropic-version": "2023-06-01", "Content-Type": "application/json"},
+                json=payload,
+                timeout=45,
+            )
+            response.raise_for_status()
+            data = response.json()
+            return "".join(part.get("text", "") for part in data.get("content", []) if part.get("type") == "text")
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(status_code=400, detail=f"Error de Anthropic/Claude: {exc.response.text[:500]}")
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"No fue posible conectar con Anthropic/Claude: {exc}")
+
+    def gemini_request(settings: Dict[str, Any], messages: List[Dict[str, str]], json_mode: bool = False) -> str:
+        config = loads(settings.get("config_json") or "{}", {})
+        base_url = (config.get("base_url") or AI_PROVIDERS["gemini"]["base_url"]).rstrip("/")
+        model = settings["model"] or AI_PROVIDERS["gemini"]["default_model"]
+        prompt = "\n\n".join(f"{m.get('role', 'user').upper()}: {m.get('content', '')}" for m in messages)
+        payload: Dict[str, Any] = {
+            "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.2},
+        }
+        if json_mode:
+            payload["generationConfig"]["response_mime_type"] = "application/json"
+        try:
+            response = httpx.post(
+                f"{base_url}/models/{model}:generateContent",
+                params={"key": settings["api_key_encrypted"]},
+                json=payload,
+                timeout=45,
+            )
+            response.raise_for_status()
+            data = response.json()
+            parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+            return "".join(part.get("text", "") for part in parts)
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(status_code=400, detail=f"Error de Google Gemini: {exc.response.text[:500]}")
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"No fue posible conectar con Google Gemini: {exc}")
+
+    def ai_provider_request(settings: Dict[str, Any], messages: List[Dict[str, str]], json_mode: bool = False) -> str:
+        provider = settings.get("provider") or "openai"
+        style = provider_definition(provider).get("api_style")
+        if style == "anthropic":
+            return anthropic_request(settings, messages, json_mode)
+        if style == "gemini":
+            return gemini_request(settings, messages, json_mode)
+        return openai_compatible_request(settings, messages, json_mode)
+
+    def chatgpt_request(api_key: str, model: str, messages: List[Dict[str, str]], json_mode: bool = False) -> str:
+        return ai_provider_request({"provider": "openai", "model": model, "api_key_encrypted": api_key, "config_json": "{}"}, messages, json_mode)
+
+    def provider_label(settings: Dict[str, Any]) -> str:
+        return provider_definition(settings.get("provider") or "openai")["name"]
+
+    def configured_ai_analysis(settings: Dict[str, Any], snapshot: Dict[str, Any]) -> Dict[str, Any]:
         system = (
             "Eres un copiloto experto en gestion de proyectos. Analiza el snapshot del proyecto y responde solo JSON valido. "
             "Nunca apliques cambios. Solo propone recomendaciones pendientes para aprobacion humana."
@@ -224,17 +587,21 @@ def build_router(ctx) -> APIRouter:
             "create_deliverable, request_evidence, add_mitigation_plan y add_contingency_plan.\n\n"
             f"Snapshot:\n{dumps(snapshot)}"
         )
-        content = chatgpt_request(settings["api_key_encrypted"], settings["model"], [{"role": "system", "content": system}, {"role": "user", "content": user}], True)
+        content = ai_provider_request(settings, [{"role": "system", "content": system}, {"role": "user", "content": user}], True)
         try:
             result = json.loads(content)
         except json.JSONDecodeError:
-            raise HTTPException(status_code=400, detail="ChatGPT no devolvio JSON valido")
+            raise HTTPException(status_code=400, detail=f"{provider_label(settings)} no devolvio JSON valido")
         result.setdefault("project_health", "Sin clasificar")
         result.setdefault("summary", "")
         result.setdefault("detected_issues", [])
         result.setdefault("recommended_actions", [])
-        result["mode"] = "chatgpt"
+        result["mode"] = "configured"
+        result["provider"] = settings.get("provider") or "openai"
         return result
+
+    def chatgpt_analysis(settings: Dict[str, Any], snapshot: Dict[str, Any]) -> Dict[str, Any]:
+        return configured_ai_analysis(settings, snapshot)
 
     def persist_analysis(conn: sqlite3.Connection, project_id: int, user_id: int, snapshot: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         now = datetime.utcnow().isoformat()
@@ -354,18 +721,49 @@ def build_router(ctx) -> APIRouter:
     def save_ai_settings(payload: AiSettingsIn) -> Dict[str, Any]:
         with db() as conn:
             existing = settings_row(conn)
-            api_key = payload.api_key if payload.api_key and "****" not in payload.api_key else (existing["api_key_encrypted"] if existing else "")
+            provider = payload.provider or "openai"
+            if provider not in AI_PROVIDERS:
+                raise HTTPException(status_code=400, detail="Proveedor IA no soportado")
+            definition = provider_definition(provider)
+            config = dict(payload.config or {})
+            existing_provider = (existing["provider"] if existing and "provider" in existing else "openai") if existing else ""
+            keep_existing_key = existing and existing_provider == provider and (not payload.api_key or "****" in payload.api_key)
+            api_key = existing["api_key_encrypted"] if keep_existing_key else (payload.api_key if payload.api_key and "****" not in payload.api_key else "")
+            provider_changed = bool(existing and existing_provider != provider)
+            incoming_model = payload.model or config.get("model") or ""
+            other_provider_models = set()
+            for key, item in AI_PROVIDERS.items():
+                if key == provider:
+                    continue
+                if item.get("default_model"):
+                    other_provider_models.add(item["default_model"])
+                for option in item.get("model_options", []):
+                    other_provider_models.add(option["value"])
+            inherited_model = incoming_model in other_provider_models
+            model = (definition.get("default_model") or "") if provider_changed or inherited_model else (incoming_model or definition.get("default_model") or "")
+            config.pop("api_key", None)
+            config.pop("model", None)
+            for field in definition.get("fields", []):
+                name = field["name"]
+                if name in {"api_key", "model"}:
+                    continue
+                if field.get("required") and not str(config.get(name) or "").strip():
+                    raise HTTPException(status_code=400, detail=f"Falta configurar: {field['label']}")
+            if any(field["name"] == "api_key" and field.get("required") for field in definition.get("fields", [])) and not api_key:
+                raise HTTPException(status_code=400, detail="Falta configurar: API Key")
+            if any(field["name"] == "model" and field.get("required") for field in definition.get("fields", [])) and not model:
+                raise HTTPException(status_code=400, detail="Falta configurar: Modelo")
             status = "Conectado" if api_key else "No configurado"
             now = datetime.utcnow().isoformat()
             if existing:
                 conn.execute(
-                    "UPDATE ai_settings SET model=?, api_key_encrypted=?, status=?, updated_at=? WHERE id=?",
-                    (payload.model, api_key, status, now, existing["id"]),
+                    "UPDATE ai_settings SET provider=?, model=?, api_key_encrypted=?, config_json=?, status=?, last_error='', updated_at=? WHERE id=?",
+                    (provider, model, api_key, dumps(config), status, now, existing["id"]),
                 )
             else:
                 conn.execute(
-                    "INSERT INTO ai_settings (model, api_key_encrypted, status, updated_at) VALUES (?, ?, ?, ?)",
-                    (payload.model, api_key, status, now),
+                    "INSERT INTO ai_settings (provider, model, api_key_encrypted, config_json, status, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    (provider, model, api_key, dumps(config), status, now),
                 )
             conn.commit()
             return serialize_ai_settings(settings_row(conn))
@@ -376,21 +774,16 @@ def build_router(ctx) -> APIRouter:
             settings = settings_row(conn)
             now = datetime.utcnow().isoformat()
             if not settings or not settings["api_key_encrypted"]:
-                message = "IA funcionando en modo demo. Configure una API Key de OpenAI para usar ChatGPT real."
+                message = "Motor interno activo. Configure una API Key para usar IA real."
                 if settings:
                     conn.execute("UPDATE ai_settings SET status='No configurado', last_test_at=?, last_error=? WHERE id=?", (now, message, settings["id"]))
                     conn.commit()
-                return {"status": "No configurado", "mode": "demo", "message": message, "last_test_at": now}
+                return {"status": "No configurado", "mode": "internal_rules", "message": message, "last_test_at": now}
             try:
-                chatgpt_request(
-                    settings["api_key_encrypted"],
-                    settings["model"],
-                    [{"role": "user", "content": "Responde solo: ok"}],
-                    False,
-                )
+                ai_provider_request(settings, [{"role": "user", "content": "Responde solo: ok"}], False)
                 conn.execute("UPDATE ai_settings SET status='Conectado', last_test_at=?, last_error='' WHERE id=?", (now, settings["id"]))
                 conn.commit()
-                return {"status": "Conectado", "mode": "chatgpt", "message": "Conexion con ChatGPT verificada.", "last_test_at": now}
+                return {"status": "Conectado", "mode": "configured", "provider": settings.get("provider") or "openai", "message": f"Conexion con {provider_label(settings)} verificada.", "last_test_at": now}
             except HTTPException as exc:
                 conn.execute("UPDATE ai_settings SET status='Error', last_test_at=?, last_error=? WHERE id=?", (now, str(exc.detail), settings["id"]))
                 conn.commit()
@@ -409,11 +802,11 @@ def build_router(ctx) -> APIRouter:
             user = current_user(conn, request)
             snapshot = project_snapshot(conn, project_id, payload)
             settings = settings_row(conn)
-            result = chatgpt_analysis(settings, snapshot) if settings and settings["api_key_encrypted"] else demo_ai_analysis(snapshot)
+            result = configured_ai_analysis(settings, snapshot) if settings and settings["api_key_encrypted"] else internal_rules_analysis(snapshot)
             persisted = persist_analysis(conn, project_id, user["id"], snapshot, result)
             conn.commit()
-            notice = "" if result.get("mode") == "chatgpt" else "IA funcionando en modo demo. Configure una API Key de OpenAI para usar ChatGPT real."
-            return {**result, **persisted, "demo_notice": notice}
+            notice = "" if result.get("mode") == "configured" else "Motor interno activo: analisis generado con reglas de Proyecta360. Configure una API Key para usar IA real."
+            return {**result, **persisted, "analysis_notice": notice, "demo_notice": notice}
 
     @router.get("/api/projects/{project_id}/ai/analysis-runs")
     def list_analysis_runs(project_id: int) -> Dict[str, Any]:
@@ -548,14 +941,15 @@ def build_router(ctx) -> APIRouter:
             settings = settings_row(conn)
             if payload.mode == "accion":
                 snapshot = project_snapshot(conn, project_id, AiAnalysisIn())
-                result = chatgpt_analysis(settings, snapshot) if settings and settings["api_key_encrypted"] else demo_ai_analysis(snapshot)
+                result = configured_ai_analysis(settings, snapshot) if settings and settings["api_key_encrypted"] else internal_rules_analysis(snapshot)
                 persisted = persist_analysis(conn, project_id, user["id"], snapshot, result)
                 conn.commit()
-                return {"mode": "accion", "answer": "Se generaron recomendaciones pendientes. Revisa y aprueba antes de aplicar.", **persisted}
+                engine = "IA real" if result.get("mode") == "configured" else "motor interno"
+                return {"mode": "accion", "answer": f"Se generaron recomendaciones pendientes con {engine}. Revisa y aprueba antes de aplicar.", **persisted}
             if settings and settings["api_key_encrypted"]:
                 snapshot = project_snapshot(conn, project_id, AiAnalysisIn())
                 prompt = f"Responde en espanol, con base solo en este snapshot del proyecto. Pregunta: {payload.message}\nSnapshot: {dumps(snapshot)}"
-                answer = chatgpt_request(settings["api_key_encrypted"], settings["model"], [{"role": "user", "content": prompt}], False)
+                answer = ai_provider_request(settings, [{"role": "user", "content": prompt}], False)
             else:
                 answer = answer_project_question(conn, project_id, payload.message)
             add_history(conn, project_id, "IA", "Chat IA del proyecto", "Consulta", payload.message[:180], user["name"])

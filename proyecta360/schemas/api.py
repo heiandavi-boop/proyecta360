@@ -269,6 +269,8 @@ class AiChatIn(BaseModel):
 class AiSettingsIn(BaseModel):
     api_key: str = ""
     model: str = Field(default="gpt-4o-mini", max_length=120)
+    provider: str = Field(default="openai", max_length=80)
+    config: Dict[str, Any] = Field(default_factory=dict)
 
 
 class AiAnalysisIn(BaseModel):

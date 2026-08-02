@@ -310,29 +310,15 @@
               <h2>IA del Proyecto</h2>
               <p>Analiza, propone y deja recomendaciones pendientes. Ningun cambio se aplica sin aprobacion humana.</p>
             </div>
-            <span class="pill pill-amber" id="aiModeNotice">Modo demo disponible</span>
+            <span class="pill pill-amber" id="aiModeNotice">Motor interno disponible</span>
           </div>
           <div class="tabs ai-tabs">
-            <button class="active" type="button" data-ai-tab="settings">Configuracion ChatGPT</button>
-            <button type="button" data-ai-tab="analysis">Analisis IA del proyecto</button>
-            <button type="button" data-ai-tab="recommendations">Recomendaciones ChatGPT</button>
+            <button class="active" type="button" data-ai-tab="analysis">Analisis IA del proyecto</button>
+            <button type="button" data-ai-tab="recommendations">Recomendaciones IA</button>
             <button type="button" data-ai-tab="history">Historial IA</button>
           </div>
 
-          <div class="ai-tab-panel" id="aiTab-settings">
-            <form id="aiSettingsForm" class="form-grid two">
-              <label>Modelo<input name="model" placeholder="gpt-4o-mini"></label>
-              <label>API Key<input name="api_key" type="password" placeholder="No configurada"></label>
-            </form>
-            <div class="toolbar">
-              <button class="btn primary" id="btnSaveAiSettings">Guardar configuracion</button>
-              <button class="btn ghost" id="btnTestAiConnection">Probar conexion</button>
-              <button class="btn ghost" id="btnClearAiSettings">Limpiar configuracion</button>
-            </div>
-            <div class="ai-status" id="aiSettingsStatus">Estado: No configurado</div>
-          </div>
-
-          <div class="ai-tab-panel hidden" id="aiTab-analysis">
+          <div class="ai-tab-panel" id="aiTab-analysis">
             <div class="ai-check-grid">
               <label class="inline-check"><input type="checkbox" data-ai-include="include_schedule" checked> Cronograma</label>
               <label class="inline-check"><input type="checkbox" data-ai-include="include_risks" checked> Riesgos</label>
@@ -343,7 +329,7 @@
               <label class="inline-check"><input type="checkbox" data-ai-include="include_history" checked> Historial</label>
               <label class="inline-check"><input type="checkbox" data-ai-include="include_conversations" checked> Conversaciones</label>
             </div>
-            <button class="btn primary" id="btnRunAiAnalysis">Analizar proyecto completo con ChatGPT</button>
+            <button class="btn primary" id="btnRunAiAnalysis">Analizar proyecto completo</button>
             <div class="chat-box">
               <h3>Chat IA conectado al proyecto</h3>
               <select id="aiChatMode"><option value="consulta">Modo consulta</option><option value="accion">Modo accion</option></select>
@@ -374,6 +360,19 @@
             <button class="btn primary" id="btnSaveParametersInline">Guardar parámetros</button>
           </div>
           <div id="parametersForm" class="parameters-form"></div>
+          <div class="parameter-block">
+            <h3>Proveedores de IA</h3>
+            <form id="aiSettingsForm" class="form-grid two">
+              <label>IA principal<select name="provider" id="aiProviderSelect"></select></label>
+              <div id="aiProviderFields" class="form-grid two ai-provider-fields"></div>
+            </form>
+            <div class="toolbar">
+              <button class="btn primary" id="btnSaveAiSettings" type="button" data-action="save-ai-settings">Guardar configuracion</button>
+              <button class="btn ghost" id="btnTestAiConnection" type="button" data-action="test-ai-connection">Probar conexion</button>
+              <button class="btn ghost" id="btnClearAiSettings" type="button" data-action="clear-ai-settings">Limpiar configuracion</button>
+            </div>
+            <div class="ai-status" id="aiSettingsStatus">Estado: No configurado</div>
+          </div>
         </div>
       </section>
     </main>
@@ -389,7 +388,7 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="/static/app.js?v=20260802-20"></script>
+  <script src="/static/app.js?v=20260802-27"></script>
 </body>
 </html>
 

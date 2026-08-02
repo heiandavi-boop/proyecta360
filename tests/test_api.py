@@ -390,15 +390,61 @@ def test_ai_settings_are_saved_and_api_key_is_masked(client):
     assert "sk-test-secret-abcd" not in str(body)
 
 
-def test_ai_connection_without_key_uses_demo_mode(client):
+def test_ai_settings_support_multiple_providers(client):
+    initial = client.get("/api/ai/settings", headers=auth_headers(client))
+    assert "openai" in initial.json()["providers"]
+    assert "anthropic" in initial.json()["providers"]
+    assert "gemini" in initial.json()["providers"]
+    assert initial.json()["providers"]["gemini"]["model_options"]
+    assert initial.json()["providers"]["xai"]["model_options"][0]["value"] == "grok-4.5"
+
+    response = client.post(
+        "/api/ai/settings",
+        headers=auth_headers(client),
+        json={
+            "provider": "openrouter",
+            "api_key": "or-test-secret-abcd",
+            "model": "anthropic/claude-sonnet-4.5",
+            "config": {"site_url": "https://proyecta360.local", "app_name": "Proyecta360"},
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["provider"] == "openrouter"
+    assert body["provider_name"] == "OpenRouter"
+    assert body["model"] == "anthropic/claude-sonnet-4.5"
+    assert body["api_key_masked"] == "or-****abcd"
+    assert body["config"]["app_name"] == "Proyecta360"
+    assert "or-test-secret-abcd" not in str(body)
+
+
+def test_ai_provider_replaces_inherited_default_model(client):
+    response = client.post(
+        "/api/ai/settings",
+        headers=auth_headers(client),
+        json={
+            "provider": "xai",
+            "api_key": "xai-test-secret-abcd",
+            "model": "gpt-4o-mini",
+            "config": {},
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["provider"] == "xai"
+    assert response.json()["model"] == "grok-4.5"
+
+
+def test_ai_connection_without_key_uses_internal_rules_mode(client):
     response = client.post("/api/ai/test-connection", headers=auth_headers(client), json={})
 
     assert response.status_code == 200
-    assert response.json()["mode"] == "demo"
+    assert response.json()["mode"] == "internal_rules"
     assert response.json()["status"] == "No configurado"
 
 
-def test_ai_demo_analysis_creates_pending_recommendations_and_history(client):
+def test_ai_internal_rules_analysis_creates_pending_recommendations_and_history(client):
     payload = client.get("/api/bootstrap", headers=auth_headers(client)).json()
     project_id = payload["current_project"]["id"]
     response = client.post(
@@ -411,6 +457,9 @@ def test_ai_demo_analysis_creates_pending_recommendations_and_history(client):
     body = response.json()
     assert body["run_id"]
     assert body["recommendation_ids"]
+    assert body["mode"] == "internal_rules"
+    assert body["engine_label"] == "Motor interno"
+    assert "reglas de Proyecta360" in body["analysis_notice"]
 
     recs = client.get(f"/api/projects/{project_id}/ai/recommendations", headers=auth_headers(client)).json()["recommendations"]
     assert any(r["status"] == "Pendiente" for r in recs)

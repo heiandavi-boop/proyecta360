@@ -470,7 +470,11 @@ function renderView(view){
   $('#kpiStrip')?.classList.toggle('hidden', view === 'portfolio');
   $$('.side-item,.top-tab').forEach(b=>b.classList.toggle('active', b.dataset.view===view || (view==='gantt' && ['Plan Maestro','Gantt'].includes(b.textContent.trim()))));
   if(view==='gantt') setTimeout(drawDependencies, 50);
-  if(view==='ai') setTimeout(()=>loadAiSettings(), 50);
+  if(view==='ai'){
+    setAiTab('analysis');
+    setTimeout(()=>loadAiSettings(), 50);
+  }
+  if(view==='parameters') setTimeout(()=>loadAiSettings(), 50);
 }
 function selectThread(id){
   state.active_thread_id = id;
@@ -749,6 +753,39 @@ function downloadUrl(url){
 }
 async function exportJson(){ downloadUrl(`/api/projects/${state.current_project.id}/export/json`); setTimeout(()=>load(state.current_project.id),800); }
 async function exportHtml(){ downloadUrl(`/api/projects/${state.current_project.id}/export/html`); setTimeout(()=>load(state.current_project.id),800); }
+function renderAiProviderFields(settings={}){
+  const form = $('#aiSettingsForm');
+  const select = $('#aiProviderSelect');
+  const fieldsBox = $('#aiProviderFields');
+  if(!form || !select || !fieldsBox) return;
+  const providers = settings.providers || state.ai_providers || {};
+  state.ai_providers = providers;
+  const provider = settings.provider || select.value || 'openai';
+  select.innerHTML = Object.entries(providers).map(([key, item])=>`<option value="${safe(key)}" ${key===provider?'selected':''}>${safe(item.name)}</option>`).join('');
+  const definition = providers[provider] || providers.openai || {fields:[]};
+  const config = settings.config || {};
+  const useProviderDefault = Boolean(settings.useProviderDefault);
+  const providerDefaults = Object.entries(providers)
+    .filter(([key, item])=>key !== provider && item.default_model)
+    .flatMap(([, item])=>[item.default_model].concat((item.model_options || []).map(option=>option.value)));
+  const inheritedModel = settings.model && providerDefaults.includes(settings.model);
+  fieldsBox.innerHTML = (definition.fields || []).filter(field=>field.required).map(field=>{
+    const required = field.required ? 'required' : '';
+    const placeholder = field.name === 'api_key'
+      ? (settings.api_key_masked || field.placeholder || 'No configurada')
+      : (field.placeholder || '');
+    const value = field.name === 'model'
+      ? ((useProviderDefault || inheritedModel) ? (definition.default_model || '') : (settings.model || definition.default_model || ''))
+      : (field.name === 'api_key' ? '' : (config[field.name] || ''));
+    if(field.name === 'model' && (definition.model_options || []).length){
+      const hasValue = (definition.model_options || []).some(option=>option.value === value);
+      const options = (definition.model_options || []).map(option=>`<option value="${safe(option.value)}" ${option.value===value?'selected':''}>${safe(option.label || option.value)}</option>`).join('');
+      const customOption = hasValue || !value ? '' : `<option value="${safe(value)}" selected>${safe(value)} (actual)</option>`;
+      return `<label>${safe(field.label)}<select name="model" ${required}>${customOption}${options}</select></label>`;
+    }
+    return `<label>${safe(field.label)}<input name="${safe(field.name)}" type="${safe(field.type || 'text')}" ${required} placeholder="${safe(placeholder)}" value="${safe(value)}"></label>`;
+  }).join('');
+}
 function setAiTab(tab){
   $$('.ai-tabs [data-ai-tab]').forEach(btn=>btn.classList.toggle('active', btn.dataset.aiTab === tab));
   $$('.ai-tab-panel').forEach(panel=>panel.classList.add('hidden'));
@@ -759,25 +796,64 @@ function setAiTab(tab){
 }
 async function loadAiSettings(){
   const form = $('#aiSettingsForm');
-  if(!form) return;
   const res = await request('/api/ai/settings');
-  form.model.value = res.model || 'gpt-4o-mini';
-  form.api_key.value = '';
-  form.api_key.placeholder = res.api_key_masked || 'No configurada';
-  $('#aiSettingsStatus').textContent = `Estado: ${res.status || 'No configurado'}${res.last_error ? ' | '+res.last_error : ''}`;
-  $('#aiModeNotice').textContent = res.status === 'Conectado' ? 'ChatGPT configurado' : 'IA en modo demo';
+  const connected = res.status === 'Conectado';
+  if(form){
+    renderAiProviderFields(res);
+    $('#aiSettingsStatus').textContent = `Estado: ${res.status || 'No configurado'}${res.last_error ? ' | '+res.last_error : ''}`;
+  }
+  const notice = $('#aiModeNotice');
+  if(notice) notice.textContent = connected ? `${res.provider_name || 'IA real'} configurada` : 'Motor interno activo';
+  const runBtn = $('#btnRunAiAnalysis');
+  if(runBtn) runBtn.textContent = connected ? 'Analizar proyecto con IA real' : 'Analizar proyecto con motor interno';
 }
-async function saveAiSettings(){
-  const body = Object.fromEntries(new FormData($('#aiSettingsForm')).entries());
-  const res = await request('/api/ai/settings',{method:'POST', body:JSON.stringify(body)});
-  $('#aiSettingsStatus').textContent = `Estado: ${res.status}`;
-  toast('Configuracion IA guardada');
-  await loadAiSettings();
+async function saveAiSettings(e, options={}){
+  e?.preventDefault?.();
+  const form = $('#aiSettingsForm');
+  if(!form?.reportValidity()) return;
+  const btn = $('#btnSaveAiSettings');
+  btn && (btn.disabled = true);
+  const silent = Boolean(options.silent);
+  $('#aiSettingsStatus').textContent = silent ? 'Estado: Preparando prueba...' : 'Estado: Guardando configuracion...';
+  try{
+    const raw = Object.fromEntries(new FormData(form).entries());
+    const body = {provider: raw.provider || 'openai', model: raw.model || '', api_key: raw.api_key || '', config: {}};
+    Object.entries(raw).forEach(([key, value])=>{
+      if(!['provider','model','api_key'].includes(key)) body.config[key] = value;
+    });
+    const res = await request('/api/ai/settings',{method:'POST', body:JSON.stringify(body)});
+    $('#aiSettingsStatus').textContent = `Estado: ${res.status}`;
+    if(!silent) toast('Configuracion IA guardada');
+    if(!silent) await loadAiSettings();
+    return res;
+  }catch(err){
+    console.error(err);
+    $('#aiSettingsStatus').textContent = `Estado: Error | ${err.message}`;
+    if(!silent) toast(err.message);
+    if(silent) throw err;
+    return null;
+  }finally{
+    btn && (btn.disabled = false);
+  }
 }
 async function testAiConnection(){
-  const res = await request('/api/ai/test-connection',{method:'POST', body:JSON.stringify({})});
-  $('#aiSettingsStatus').textContent = `Estado: ${res.status} | ${res.message}`;
-  toast(res.message);
+  const btn = $('#btnTestAiConnection');
+  btn && (btn.disabled = true);
+  $('#aiSettingsStatus').textContent = 'Estado: Probando conexion...';
+  try{
+    await saveAiSettings(null, {silent: true});
+    $('#aiSettingsStatus').textContent = 'Estado: Probando conexion...';
+    const res = await request('/api/ai/test-connection',{method:'POST', body:JSON.stringify({})});
+    $('#aiSettingsStatus').textContent = `Estado: ${res.status} | ${res.message}`;
+    toast(res.message);
+    await loadAiSettings();
+  }catch(err){
+    console.error(err);
+    $('#aiSettingsStatus').textContent = `Estado: Error | ${err.message}`;
+    toast(err.message);
+  }finally{
+    btn && (btn.disabled = false);
+  }
 }
 async function clearAiSettings(){
   await request('/api/ai/settings',{method:'DELETE'});
@@ -789,7 +865,10 @@ function aiAnalysisIncludes(){
 }
 async function runAiAnalysis(){
   const res = await request(`/api/projects/${state.current_project.id}/ai/analyze`,{method:'POST', body:JSON.stringify(aiAnalysisIncludes())});
-  $('#aiOutput').textContent = `${res.demo_notice || ''}\n\nSalud: ${res.project_health}\n\n${res.summary}\n\nIssues detectados: ${(res.detected_issues||[]).length}\nRecomendaciones pendientes: ${(res.recommended_actions||[]).length}`;
+  const engine = res.engine_label || (res.mode === 'configured' ? 'IA real' : 'Motor interno');
+  const issues = (res.detected_issues || []).map(item=>`- [${item.severity || 'info'}] ${item.description}`).join('\n');
+  const recs = (res.recommended_actions || []).map(item=>`- [${item.priority || 'medium'}] ${item.title}: ${item.description}`).join('\n');
+  $('#aiOutput').textContent = `${res.analysis_notice || res.demo_notice || ''}\n\nMotor: ${engine}\nSalud: ${res.project_health}\n\n${res.summary}\n\nHallazgos:\n${issues || '- Sin hallazgos relevantes'}\n\nRecomendaciones pendientes:\n${recs || '- Sin recomendaciones'}`;
   toast('Analisis IA generado');
   await refreshAiRecommendations();
   await refreshAiHistory();
@@ -870,6 +949,9 @@ function bindEvents(){
     e.stopPropagation();
     const id = Number(actionEl.dataset.id || 0);
     const action = actionEl.dataset.action;
+    if(action === 'save-ai-settings') return saveAiSettings(e);
+    if(action === 'test-ai-connection') return testAiConnection(e);
+    if(action === 'clear-ai-settings') return clearAiSettings();
     if(action === 'open-project') return openProject(id);
     if(action === 'toggle-task') return toggleTask(id);
     if(action === 'indent-task') return indentTask(id);
@@ -907,6 +989,11 @@ function bindEvents(){
       return fitGanttToViewport();
     }
   });
+  document.addEventListener('change', e=>{
+    if(e.target?.id === 'aiProviderSelect'){
+      renderAiProviderFields({provider: e.target.value, providers: state.ai_providers || {}, useProviderDefault: true});
+    }
+  });
   $$('.side-item,.top-tab').forEach(b=>b.addEventListener('click',()=>renderView(b.dataset.view || 'gantt')));
   $$('.ai-tabs [data-ai-tab]').forEach(b=>b.addEventListener('click',()=>setAiTab(b.dataset.aiTab)));
   on('#projectSelector','change', e=>load(Number(e.target.value)));
@@ -934,9 +1021,7 @@ function bindEvents(){
   on('#btnAddDeliverable','click',openDeliverableModal);
   on('#btnUploadEvidence','click',openEvidenceModal);
   on('#btnUploadEvidenceSecondary','click',openEvidenceModal);
-  on('#btnSaveAiSettings','click',saveAiSettings);
-  on('#btnTestAiConnection','click',testAiConnection);
-  on('#btnClearAiSettings','click',clearAiSettings);
+  on('#aiSettingsForm','submit',saveAiSettings);
   on('#btnRunAiAnalysis','click',runAiAnalysis);
   on('#btnRefreshAiRecommendations','click',refreshAiRecommendations);
   on('#btnRefreshAiHistory','click',refreshAiHistory);

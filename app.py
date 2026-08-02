@@ -209,6 +209,12 @@ def ensure_schema_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE users ADD COLUMN token_expires_at TEXT DEFAULT ''")
     conn.execute("UPDATE users SET access_token = '' WHERE access_token != ''")
 
+    ai_cols = columns("ai_settings")
+    if "provider" not in ai_cols:
+        conn.execute("ALTER TABLE ai_settings ADD COLUMN provider TEXT DEFAULT 'openai'")
+    if "config_json" not in ai_cols:
+        conn.execute("ALTER TABLE ai_settings ADD COLUMN config_json TEXT DEFAULT '{}'")
+
 
 def parse_iso(value: str) -> date:
     return schedule_service.parse_iso(value)
@@ -489,8 +495,10 @@ def init_db() -> None:
             );
             CREATE TABLE IF NOT EXISTS ai_settings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                provider TEXT DEFAULT 'openai',
                 model TEXT DEFAULT 'gpt-4o-mini',
                 api_key_encrypted TEXT DEFAULT '',
+                config_json TEXT DEFAULT '{}',
                 status TEXT DEFAULT 'No configurado',
                 last_test_at TEXT DEFAULT '',
                 last_error TEXT DEFAULT '',
