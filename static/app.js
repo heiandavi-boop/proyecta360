@@ -162,9 +162,6 @@ function fitGanttToViewport({render=true}={}){
   if(render) renderGantt();
 }
 function renderGantt(){
-  if(!state.gantt_fit_px && state.gantt_scale === 'days' && !state.gantt_manual_zoom){
-    fitGanttToViewport({render:false});
-  }
   const tasks = visibleTasks();
   const totalTasks = state.tasks.filter(t=>t.task_type !== 'summary' && !hasChildren(t.id)).length;
   const summaries = state.tasks.filter(t=>t.task_type === 'summary' || hasChildren(t.id)).length;
