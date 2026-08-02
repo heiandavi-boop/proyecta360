@@ -748,38 +748,52 @@ function openDeliverableModal(){
 }
 function openNewProjectModal(){
   const today = iso(new Date());
-  openModal('Nuevo proyecto', `<form id="projectForm"><div class="form-grid two">
-    <label>Nombre<input name="name" required value="Nuevo proyecto"></label>
-    <label>Project Manager<input name="project_manager" value=""></label>
-    <label>Sponsor<input name="sponsor" value=""></label>
-    <label>Fecha inicio<input name="start_date" type="date" value="${today}"></label>
-    <label>Fecha compromiso / contractual<input name="contractual_end_date" type="date"></label>
-    <label>Presupuesto<input name="budget" type="number" value="0"></label>
-    <label>Moneda<select name="currency">${getCurrencyOptions('COP')}</select></label>
-    <label>Metodología<select name="methodology"><option>Híbrida PMP + Scrum</option><option>Tradicional PMP</option><option>Ágil Scrum</option><option>Kanban</option><option>Híbrida personalizada</option></select></label>
-  </div><p class="field-help">La fecha fin del proyecto no se digita manualmente: se calcula con duración, predecesoras y cronograma.</p><label>Descripción<textarea name="description" rows="3">Proyecto creado desde Proyecta360.</textarea></label>${modalActions('Crear proyecto')}</form>`);
-  $('#projectForm').addEventListener('submit', async e=>{ e.preventDefault(); const body=Object.fromEntries(new FormData(e.target).entries()); body.budget=Number(body.budget||0); body.status='Planeado'; if(!body.contractual_end_date) delete body.contractual_end_date; body.parameters=state.defaults; const created=await request('/api/projects',{method:'POST', body:JSON.stringify(body)}); closeModal(); toast('Proyecto creado con fecha fin calculada'); await load(created.id); renderView('parameters'); });
-}
-function openImportProjectModal(){
-  openModal('Importar proyecto CSV', `<form id="importProjectForm">
-    <p class="field-help">El CSV debe incluir la columna <b>entity</b>. Usa filas tipo project, component, resource, task, dependency, sprint, story, risk, deliverable, conversation_thread o conversation_message. Para enlazar registros usa <b>import_id</b>, <b>component_ref</b>, <b>predecessor_ref</b>, <b>successor_ref</b>, <b>sprint_ref</b> o <b>thread_ref</b>.</p>
-    <label>Archivo CSV<input name="file" type="file" accept=".csv,text/csv" required></label>
-    <pre class="import-sample">entity,import_id,name,title,start_date,end_date,duration_days,predecessor_ref,successor_ref
+  openModal('Nuevo proyecto', `<div class="project-create-grid">
+    <form id="projectForm" class="project-create-panel">
+      <div class="project-create-heading">
+        <h3>Crear manualmente</h3>
+        <p>Define los datos base y completa el plan dentro de Proyecta360.</p>
+      </div>
+      <div class="form-grid two">
+        <label>Nombre<input name="name" required value="Nuevo proyecto"></label>
+        <label>Project Manager<input name="project_manager" value=""></label>
+        <label>Sponsor<input name="sponsor" value=""></label>
+        <label>Fecha inicio<input name="start_date" type="date" value="${today}"></label>
+        <label>Fecha compromiso / contractual<input name="contractual_end_date" type="date"></label>
+        <label>Presupuesto<input name="budget" type="number" value="0"></label>
+        <label>Moneda<select name="currency">${getCurrencyOptions('COP')}</select></label>
+        <label>Metodología<select name="methodology"><option>Híbrida PMP + Scrum</option><option>Tradicional PMP</option><option>Ágil Scrum</option><option>Kanban</option><option>Híbrida personalizada</option></select></label>
+      </div>
+      <p class="field-help">La fecha fin del proyecto no se digita manualmente: se calcula con duración, predecesoras y cronograma.</p>
+      <label>Descripción<textarea name="description" rows="3">Proyecto creado desde Proyecta360.</textarea></label>
+      ${modalActions('Crear proyecto')}
+    </form>
+    <form id="importProjectForm" class="project-create-panel import-panel">
+      <div class="project-create-heading">
+        <h3>Importar desde CSV</h3>
+        <p>Crea el proyecto completo desde un archivo con entidades relacionadas.</p>
+      </div>
+      <p class="field-help">El CSV debe incluir la columna <b>entity</b>. Usa filas tipo project, component, resource, task, dependency, sprint, story, risk, deliverable, conversation_thread o conversation_message. Para enlazar registros usa <b>import_id</b>, <b>component_ref</b>, <b>predecessor_ref</b>, <b>successor_ref</b>, <b>sprint_ref</b> o <b>thread_ref</b>.</p>
+      <label>Archivo CSV<input name="file" type="file" accept=".csv,text/csv" required></label>
+      <pre class="import-sample">entity,import_id,name,title,start_date,end_date,duration_days,predecessor_ref,successor_ref
 project,,Proyecto importado,,2026-09-01,2026-10-15,,, 
 task,T1,,Inicio del proyecto,2026-09-01,,1,,
 task,T2,,Plan de trabajo,2026-09-02,,5,,
 dependency,,, ,,,,T1,T2</pre>
-    ${modalActions('Importar proyecto')}
-  </form>`);
-  $('#importProjectForm').addEventListener('submit', async e=>{
-    e.preventDefault();
-    const fd = new FormData(e.target);
-    const res = await request('/api/projects/import/csv', {method:'POST', body:fd});
-    closeModal();
-    toast(`Proyecto importado: ${res.project.name}`);
-    await load(res.project.id);
-    renderView('gantt');
-  });
+      ${modalActions('Importar proyecto')}
+    </form>
+  </div>`);
+  $('#projectForm').addEventListener('submit', async e=>{ e.preventDefault(); const body=Object.fromEntries(new FormData(e.target).entries()); body.budget=Number(body.budget||0); body.status='Planeado'; if(!body.contractual_end_date) delete body.contractual_end_date; body.parameters=state.defaults; const created=await request('/api/projects',{method:'POST', body:JSON.stringify(body)}); closeModal(); toast('Proyecto creado con fecha fin calculada'); await load(created.id); renderView('parameters'); });
+  $('#importProjectForm').addEventListener('submit', submitImportProject);
+}
+async function submitImportProject(e){
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const res = await request('/api/projects/import/csv', {method:'POST', body:fd});
+  closeModal();
+  toast(`Proyecto importado: ${res.project.name}`);
+  await load(res.project.id);
+  renderView('gantt');
 }
 function openLoginModal(){
   openModal('Ingreso', `<form id="loginForm"><div class="form-grid two">
@@ -962,13 +976,34 @@ async function runAiAnalysis(){
 async function aiProjectAsk(){
   const q = $('#aiQuestion')?.value.trim();
   if(!q){ toast('Escribe una pregunta para el proyecto'); return; }
+  if(!state.current_project?.id){ toast('Selecciona un proyecto primero'); return; }
+  const btn = $('#btnAskAi');
+  const output = $('#aiOutput');
+  if(btn?.disabled) return;
+  const previous = btn?.textContent || '';
   const mode = $('#aiChatMode')?.value || 'consulta';
-  const res = await request(`/api/projects/${state.current_project.id}/ai/chat`,{method:'POST', body:JSON.stringify({message:q, mode})});
-  $('#aiOutput').textContent = mode === 'accion'
-    ? `Modo accion:\n${res.answer}\n\nRecomendaciones pendientes generadas: ${(res.recommendation_ids||[]).length}`
-    : `Pregunta:\n${q}\n\nRespuesta conectada al proyecto:\n${res.answer}`;
-  toast(mode === 'accion' ? 'Recomendaciones pendientes creadas' : 'Respuesta IA generada');
-  if(mode === 'accion') await refreshAiRecommendations();
+  if(btn){ btn.disabled = true; btn.textContent = 'Consultando...'; }
+  if(output) output.textContent = 'Consultando el proyecto con el motor disponible...';
+  output?.scrollIntoView({behavior:'smooth', block:'nearest'});
+  try{
+    const res = await request(`/api/projects/${state.current_project.id}/ai/chat`,{method:'POST', body:JSON.stringify({message:q, mode})});
+    output.textContent = mode === 'accion'
+      ? `Modo accion:\n${res.answer}\n\nRecomendaciones pendientes generadas: ${(res.recommendation_ids||[]).length}`
+      : `Pregunta:\n${q}\n\nRespuesta conectada al proyecto:\n${res.answer}`;
+    output.scrollIntoView({behavior:'smooth', block:'nearest'});
+    toast(mode === 'accion' ? 'Recomendaciones pendientes creadas' : 'Respuesta IA generada');
+    if(mode === 'accion'){
+      await refreshAiRecommendations();
+      await refreshAiHistory();
+    }
+  }catch(err){
+    console.error(err);
+    if(output) output.textContent = `No fue posible consultar el proyecto.\n\nDetalle: ${err.message}`;
+    output?.scrollIntoView({behavior:'smooth', block:'nearest'});
+    toast(err.message);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = previous || 'Enviar al copiloto IA'; }
+  }
 }
 async function refreshAiRecommendations(){
   if(!state.current_project) return;
@@ -1039,6 +1074,7 @@ function bindEvents(){
     if(action === 'test-ai-connection') return testAiConnection(e);
     if(action === 'clear-ai-settings') return clearAiSettings();
     if(action === 'run-ai-analysis') return runAiAnalysis();
+    if(action === 'ask-ai') return aiProjectAsk();
     if(action === 'open-project') return openProject(id);
     if(action === 'toggle-task') return toggleTask(id);
     if(action === 'indent-task') return indentTask(id);
@@ -1100,7 +1136,6 @@ function bindEvents(){
   on('#btnOpenParameters','click',()=>renderView('parameters'));
   on('#btnSaveParametersInline','click',saveParameters);
   on('#btnNewProject','click',openNewProjectModal);
-  on('#btnImportProject','click',openImportProjectModal);
   on('#btnAddStory','click',openStoryModal);
   on('#btnAddRisk','click',openRiskModal);
   on('#btnAddResource','click',openResourceModal);
@@ -1114,7 +1149,6 @@ function bindEvents(){
   on('#btnRefreshAiHistory','click',refreshAiHistory);
   on('#btnExportJson','click',exportJson);
   on('#btnExportHtml','click',exportHtml);
-  on('#btnAskAi','click',aiProjectAsk);
   on('#btnLogin','click',openLoginModal);
   on('#btnLogout','click',logout);
   on('#messageForm','submit',sendMessage);

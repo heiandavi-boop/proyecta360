@@ -95,7 +95,6 @@
         <div class="header-actions">
           <select id="projectSelector"></select>
           <button class="btn ghost" id="btnNewProject">+ Nuevo proyecto</button>
-          <button class="btn ghost" id="btnImportProject">Importar CSV</button>
           <button class="btn ghost" id="btnOpenParameters">Parametrizar proyecto</button>
           <button class="btn primary" id="btnAddTask">+ Nueva actividad</button>
         </div>
@@ -336,7 +335,7 @@
               <h3>Chat IA conectado al proyecto</h3>
               <select id="aiChatMode"><option value="consulta">Modo consulta</option><option value="accion">Modo accion</option></select>
               <textarea id="aiQuestion" rows="3" placeholder="Ejemplo: Que esta atrasado? Sugiere acciones para reducir riesgos."></textarea>
-              <button class="btn primary" id="btnAskAi">Enviar al copiloto IA</button>
+              <button class="btn primary" id="btnAskAi" type="button" data-action="ask-ai">Enviar al copiloto IA</button>
             </div>
           </div>
 
@@ -389,7 +388,7 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="/static/app.js?v=20260802-31"></script>
+  <script src="/static/app.js?v=20260802-32"></script>
 </body>
 </html>
 
