@@ -37,7 +37,6 @@ DEFAULT_PARAMETERS: Dict[str, Any] = {
     },
     "ai": {
         "enabled": False,
-        "provider": "OpenAI / Azure OpenAI",
         "model": "configurable",
         "use_project_documents": True,
         "allow_create_tasks": True,

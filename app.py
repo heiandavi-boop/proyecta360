@@ -489,11 +489,7 @@ def init_db() -> None:
             );
             CREATE TABLE IF NOT EXISTS ai_settings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                provider TEXT DEFAULT 'OpenAI',
                 model TEXT DEFAULT 'gpt-4o-mini',
-                endpoint TEXT DEFAULT '',
-                deployment TEXT DEFAULT '',
-                organization_id TEXT DEFAULT '',
                 api_key_encrypted TEXT DEFAULT '',
                 status TEXT DEFAULT 'No configurado',
                 last_test_at TEXT DEFAULT '',

@@ -313,20 +313,16 @@
             <span class="pill pill-amber" id="aiModeNotice">Modo demo disponible</span>
           </div>
           <div class="tabs ai-tabs">
-            <button class="active" type="button" data-ai-tab="settings">Configuracion IA</button>
-            <button type="button" data-ai-tab="analysis">Analisis del proyecto</button>
-            <button type="button" data-ai-tab="recommendations">Recomendaciones IA</button>
+            <button class="active" type="button" data-ai-tab="settings">Configuracion ChatGPT</button>
+            <button type="button" data-ai-tab="analysis">Analisis IA del proyecto</button>
+            <button type="button" data-ai-tab="recommendations">Recomendaciones ChatGPT</button>
             <button type="button" data-ai-tab="history">Historial IA</button>
           </div>
 
           <div class="ai-tab-panel" id="aiTab-settings">
             <form id="aiSettingsForm" class="form-grid two">
-              <label>Proveedor<select name="provider"><option>OpenAI</option><option>Azure OpenAI</option></select></label>
               <label>Modelo<input name="model" placeholder="gpt-4o-mini"></label>
               <label>API Key<input name="api_key" type="password" placeholder="No configurada"></label>
-              <label>Organization ID<input name="organization_id" placeholder="Opcional"></label>
-              <label>Endpoint<input name="endpoint" placeholder="Solo Azure OpenAI"></label>
-              <label>Deployment<input name="deployment" placeholder="Solo Azure OpenAI"></label>
             </form>
             <div class="toolbar">
               <button class="btn primary" id="btnSaveAiSettings">Guardar configuracion</button>
@@ -347,7 +343,7 @@
               <label class="inline-check"><input type="checkbox" data-ai-include="include_history" checked> Historial</label>
               <label class="inline-check"><input type="checkbox" data-ai-include="include_conversations" checked> Conversaciones</label>
             </div>
-            <button class="btn primary" id="btnRunAiAnalysis">Ejecutar analisis IA</button>
+            <button class="btn primary" id="btnRunAiAnalysis">Analizar proyecto completo con ChatGPT</button>
             <div class="chat-box">
               <h3>Chat IA conectado al proyecto</h3>
               <select id="aiChatMode"><option value="consulta">Modo consulta</option><option value="accion">Modo accion</option></select>
@@ -393,7 +389,8 @@
   </div>
 
   <div class="toast hidden" id="toast"></div>
-  <script src="/static/app.js?v=20260802-19"></script>
+  <script src="/static/app.js?v=20260802-20"></script>
 </body>
 </html>
+
 

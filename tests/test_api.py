@@ -378,10 +378,8 @@ def test_ai_settings_are_saved_and_api_key_is_masked(client):
         "/api/ai/settings",
         headers=auth_headers(client),
         json={
-            "provider": "OpenAI",
             "api_key": "sk-test-secret-abcd",
             "model": "gpt-4o-mini",
-            "organization_id": "org-demo",
         },
     )
 

@@ -6,6 +6,7 @@ import sqlite3
 from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
+import httpx
 
 from proyecta360.schemas.api import (
     AiChatIn,
@@ -87,17 +88,12 @@ def build_router(ctx) -> APIRouter:
     def serialize_ai_settings(row: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         if not row:
             return {
-                "provider": "OpenAI", "model": "gpt-4o-mini", "endpoint": "", "deployment": "",
-                "organization_id": "", "api_key_masked": "", "status": "No configurado",
+                "model": "gpt-4o-mini", "api_key_masked": "", "status": "No configurado",
                 "last_test_at": "", "last_error": "",
             }
         return {
             "id": row["id"],
-            "provider": row["provider"],
             "model": row["model"],
-            "endpoint": row["endpoint"],
-            "deployment": row["deployment"],
-            "organization_id": row["organization_id"],
             "api_key_masked": mask_api_key(row["api_key_encrypted"]),
             "status": row["status"],
             "last_test_at": row["last_test_at"],
@@ -193,6 +189,52 @@ def build_router(ctx) -> APIRouter:
             "recommended_actions": recs,
             "mode": "demo",
         }
+
+    def settings_row(conn: sqlite3.Connection) -> Optional[Dict[str, Any]]:
+        return one(conn, "SELECT * FROM ai_settings ORDER BY id LIMIT 1")
+
+    def chatgpt_request(api_key: str, model: str, messages: List[Dict[str, str]], json_mode: bool = False) -> str:
+        payload: Dict[str, Any] = {"model": model or "gpt-4o-mini", "messages": messages, "temperature": 0.2}
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
+        try:
+            response = httpx.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                json=payload,
+                timeout=45,
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
+        except httpx.HTTPStatusError as exc:
+            detail = exc.response.text[:500]
+            raise HTTPException(status_code=400, detail=f"Error de ChatGPT/OpenAI: {detail}")
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"No fue posible conectar con ChatGPT: {exc}")
+
+    def chatgpt_analysis(settings: Dict[str, Any], snapshot: Dict[str, Any]) -> Dict[str, Any]:
+        system = (
+            "Eres un copiloto experto en gestion de proyectos. Analiza el snapshot del proyecto y responde solo JSON valido. "
+            "Nunca apliques cambios. Solo propone recomendaciones pendientes para aprobacion humana."
+        )
+        user = (
+            "Devuelve exactamente un objeto JSON con project_health, summary, detected_issues y recommended_actions. "
+            "Las acciones permitidas son create_task, update_task, create_dependency, create_risk, update_risk, "
+            "create_deliverable, request_evidence, add_mitigation_plan y add_contingency_plan.\n\n"
+            f"Snapshot:\n{dumps(snapshot)}"
+        )
+        content = chatgpt_request(settings["api_key_encrypted"], settings["model"], [{"role": "system", "content": system}, {"role": "user", "content": user}], True)
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="ChatGPT no devolvio JSON valido")
+        result.setdefault("project_health", "Sin clasificar")
+        result.setdefault("summary", "")
+        result.setdefault("detected_issues", [])
+        result.setdefault("recommended_actions", [])
+        result["mode"] = "chatgpt"
+        return result
 
     def persist_analysis(conn: sqlite3.Connection, project_id: int, user_id: int, snapshot: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
         now = datetime.utcnow().isoformat()
@@ -306,43 +348,53 @@ def build_router(ctx) -> APIRouter:
     @router.get("/api/ai/settings")
     def get_ai_settings() -> Dict[str, Any]:
         with db() as conn:
-            return serialize_ai_settings(one(conn, "SELECT * FROM ai_settings ORDER BY id LIMIT 1"))
+            return serialize_ai_settings(settings_row(conn))
 
     @router.post("/api/ai/settings")
     def save_ai_settings(payload: AiSettingsIn) -> Dict[str, Any]:
         with db() as conn:
-            existing = one(conn, "SELECT * FROM ai_settings ORDER BY id LIMIT 1")
+            existing = settings_row(conn)
             api_key = payload.api_key if payload.api_key and "****" not in payload.api_key else (existing["api_key_encrypted"] if existing else "")
             status = "Conectado" if api_key else "No configurado"
             now = datetime.utcnow().isoformat()
             if existing:
                 conn.execute(
-                    """UPDATE ai_settings SET provider=?, model=?, endpoint=?, deployment=?, organization_id=?, api_key_encrypted=?, status=?, updated_at=? WHERE id=?""",
-                    (payload.provider, payload.model, payload.endpoint, payload.deployment, payload.organization_id, api_key, status, now, existing["id"]),
+                    "UPDATE ai_settings SET model=?, api_key_encrypted=?, status=?, updated_at=? WHERE id=?",
+                    (payload.model, api_key, status, now, existing["id"]),
                 )
             else:
                 conn.execute(
-                    """INSERT INTO ai_settings (provider, model, endpoint, deployment, organization_id, api_key_encrypted, status, updated_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (payload.provider, payload.model, payload.endpoint, payload.deployment, payload.organization_id, api_key, status, now),
+                    "INSERT INTO ai_settings (model, api_key_encrypted, status, updated_at) VALUES (?, ?, ?, ?)",
+                    (payload.model, api_key, status, now),
                 )
             conn.commit()
-            return serialize_ai_settings(one(conn, "SELECT * FROM ai_settings ORDER BY id LIMIT 1"))
+            return serialize_ai_settings(settings_row(conn))
 
     @router.post("/api/ai/test-connection")
     def test_ai_connection() -> Dict[str, Any]:
         with db() as conn:
-            settings = one(conn, "SELECT * FROM ai_settings ORDER BY id LIMIT 1")
+            settings = settings_row(conn)
             now = datetime.utcnow().isoformat()
             if not settings or not settings["api_key_encrypted"]:
-                message = "IA funcionando en modo demo. Configure una API Key para analisis generativo real."
+                message = "IA funcionando en modo demo. Configure una API Key de OpenAI para usar ChatGPT real."
                 if settings:
                     conn.execute("UPDATE ai_settings SET status='No configurado', last_test_at=?, last_error=? WHERE id=?", (now, message, settings["id"]))
                     conn.commit()
                 return {"status": "No configurado", "mode": "demo", "message": message, "last_test_at": now}
-            conn.execute("UPDATE ai_settings SET status='Conectado', last_test_at=?, last_error='' WHERE id=?", (now, settings["id"]))
-            conn.commit()
-            return {"status": "Conectado", "mode": "configured", "message": "Configuracion IA registrada. La prueba remota real se habilitara al activar el servicio externo.", "last_test_at": now}
+            try:
+                chatgpt_request(
+                    settings["api_key_encrypted"],
+                    settings["model"],
+                    [{"role": "user", "content": "Responde solo: ok"}],
+                    False,
+                )
+                conn.execute("UPDATE ai_settings SET status='Conectado', last_test_at=?, last_error='' WHERE id=?", (now, settings["id"]))
+                conn.commit()
+                return {"status": "Conectado", "mode": "chatgpt", "message": "Conexion con ChatGPT verificada.", "last_test_at": now}
+            except HTTPException as exc:
+                conn.execute("UPDATE ai_settings SET status='Error', last_test_at=?, last_error=? WHERE id=?", (now, str(exc.detail), settings["id"]))
+                conn.commit()
+                raise
 
     @router.delete("/api/ai/settings")
     def clear_ai_settings() -> Dict[str, str]:
@@ -356,10 +408,12 @@ def build_router(ctx) -> APIRouter:
         with db() as conn:
             user = current_user(conn, request)
             snapshot = project_snapshot(conn, project_id, payload)
-            result = demo_ai_analysis(snapshot)
+            settings = settings_row(conn)
+            result = chatgpt_analysis(settings, snapshot) if settings and settings["api_key_encrypted"] else demo_ai_analysis(snapshot)
             persisted = persist_analysis(conn, project_id, user["id"], snapshot, result)
             conn.commit()
-            return {**result, **persisted, "demo_notice": "IA funcionando en modo demo. Configure una API Key para analisis generativo real."}
+            notice = "" if result.get("mode") == "chatgpt" else "IA funcionando en modo demo. Configure una API Key de OpenAI para usar ChatGPT real."
+            return {**result, **persisted, "demo_notice": notice}
 
     @router.get("/api/projects/{project_id}/ai/analysis-runs")
     def list_analysis_runs(project_id: int) -> Dict[str, Any]:
@@ -491,13 +545,19 @@ def build_router(ctx) -> APIRouter:
     def project_ai_chat(project_id: int, payload: AiProjectChatIn, request: Request) -> Dict[str, Any]:
         with db() as conn:
             user = current_user(conn, request)
+            settings = settings_row(conn)
             if payload.mode == "accion":
                 snapshot = project_snapshot(conn, project_id, AiAnalysisIn())
-                result = demo_ai_analysis(snapshot)
+                result = chatgpt_analysis(settings, snapshot) if settings and settings["api_key_encrypted"] else demo_ai_analysis(snapshot)
                 persisted = persist_analysis(conn, project_id, user["id"], snapshot, result)
                 conn.commit()
                 return {"mode": "accion", "answer": "Se generaron recomendaciones pendientes. Revisa y aprueba antes de aplicar.", **persisted}
-            answer = answer_project_question(conn, project_id, payload.message)
+            if settings and settings["api_key_encrypted"]:
+                snapshot = project_snapshot(conn, project_id, AiAnalysisIn())
+                prompt = f"Responde en espanol, con base solo en este snapshot del proyecto. Pregunta: {payload.message}\nSnapshot: {dumps(snapshot)}"
+                answer = chatgpt_request(settings["api_key_encrypted"], settings["model"], [{"role": "user", "content": prompt}], False)
+            else:
+                answer = answer_project_question(conn, project_id, payload.message)
             add_history(conn, project_id, "IA", "Chat IA del proyecto", "Consulta", payload.message[:180], user["name"])
             conn.commit()
             return {"mode": "consulta", "answer": answer, "generated_at": datetime.utcnow().isoformat()}

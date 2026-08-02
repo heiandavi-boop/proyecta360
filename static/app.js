@@ -427,7 +427,6 @@ function renderParameters(){
       <label class="inline-check"><input id="param_budget_control" type="checkbox" ${params.governance?.budget_control_enabled?'checked':''}> Control de presupuesto</label>
       <label class="inline-check"><input id="param_weekly" type="checkbox" ${params.governance?.weekly_status_report?'checked':''}> Reporte semanal</label>
       <label class="inline-check"><input id="param_ai_enabled" type="checkbox" ${params.ai?.enabled?'checked':''}> IA habilitada</label>
-      <label>Proveedor IA<input id="param_ai_provider" value="${escapeHtml(params.ai?.provider || 'OpenAI / Azure OpenAI')}"></label>
       <label>Modelo IA<input id="param_ai_model" value="${escapeHtml(params.ai?.model || 'configurable')}"></label>
     </div></div>`;
   $('#param_status').value = p.status;
@@ -445,7 +444,7 @@ function collectParameters(){
     sprint: {duration_days: Number($('#param_sprint_days').value || 14), story_point_scale: [1,2,3,5,8,13]},
     risk_matrix: {probability_scale:[1,2,3,4,5], impact_scale:[1,2,3,4,5], medium_threshold:Number($('#param_medium').value||8), high_threshold:Number($('#param_high').value||15)},
     governance: {critical_path_enabled: $('#param_cp').checked, budget_control_enabled: $('#param_budget_control').checked, weekly_status_report: $('#param_weekly').checked, stage_gate_approval: true},
-    ai: {enabled: $('#param_ai_enabled').checked, provider: $('#param_ai_provider').value, model: $('#param_ai_model').value, use_project_documents:true, allow_create_tasks:true, allow_create_risks:true}
+    ai: {enabled: $('#param_ai_enabled').checked, model: $('#param_ai_model').value, use_project_documents:true, allow_create_tasks:true, allow_create_risks:true}
   };
   return {
     name: $('#param_name').value,
@@ -762,15 +761,11 @@ async function loadAiSettings(){
   const form = $('#aiSettingsForm');
   if(!form) return;
   const res = await request('/api/ai/settings');
-  form.provider.value = res.provider || 'OpenAI';
   form.model.value = res.model || 'gpt-4o-mini';
-  form.endpoint.value = res.endpoint || '';
-  form.deployment.value = res.deployment || '';
-  form.organization_id.value = res.organization_id || '';
   form.api_key.value = '';
   form.api_key.placeholder = res.api_key_masked || 'No configurada';
   $('#aiSettingsStatus').textContent = `Estado: ${res.status || 'No configurado'}${res.last_error ? ' | '+res.last_error : ''}`;
-  $('#aiModeNotice').textContent = res.status === 'Conectado' ? 'Proveedor IA configurado' : 'IA en modo demo';
+  $('#aiModeNotice').textContent = res.status === 'Conectado' ? 'ChatGPT configurado' : 'IA en modo demo';
 }
 async function saveAiSettings(){
   const body = Object.fromEntries(new FormData($('#aiSettingsForm')).entries());

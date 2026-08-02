@@ -267,19 +267,8 @@ class AiChatIn(BaseModel):
 
 
 class AiSettingsIn(BaseModel):
-    provider: str = Field(default="OpenAI", max_length=40)
     api_key: str = ""
     model: str = Field(default="gpt-4o-mini", max_length=120)
-    endpoint: str = ""
-    deployment: str = ""
-    organization_id: str = ""
-
-    @field_validator("provider")
-    @classmethod
-    def validate_provider(cls, value: str) -> str:
-        if value not in {"OpenAI", "Azure OpenAI"}:
-            raise ValueError("Proveedor IA invalido")
-        return value
 
 
 class AiAnalysisIn(BaseModel):
