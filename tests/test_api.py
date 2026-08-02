@@ -1,4 +1,5 @@
 ﻿import pytest
+from io import BytesIO
 from fastapi.testclient import TestClient  # noqa: E402
 
 import app as app_module  # noqa: E402
@@ -55,6 +56,37 @@ def test_project_strategic_framework_can_be_updated(client):
     strategic = response.json()["parameters"]["strategic_framework"]
     assert strategic["problem_statement"] == "Nueva brecha estrategica validada"
     assert strategic["general_objective"]
+
+
+def test_import_project_from_csv_creates_related_records(client):
+    headers = auth_headers(client)
+    csv_data = "\n".join([
+        "entity,import_id,name,title,description,start_date,end_date,duration_days,project_manager,budget,currency,component_ref,predecessor_ref,successor_ref,probability,impact,response,owner,due_date,problem_statement,general_objective",
+        "project,,Proyecto CSV,,,2026-09-01,2026-09-30,,PM CSV,1000,COP,,,,,,,,,Brecha CSV,Objetivo CSV",
+        "component,C1,Componente CSV,,,,,,,,,,,,,,,,,,",
+        "resource,,Ana CSV,,,,,,,,,,,,,,,,Lider,,",
+        "task,T1,,Tarea 1,,2026-09-01,,1,,,,C1,,,,,,Ana CSV,,,",
+        "task,T2,,Tarea 2,,2026-09-02,,2,,,,C1,,,,,,Ana CSV,,,",
+        "dependency,,,,,,,,,,,,T1,T2,,,,,,,",
+        "risk,,Riesgo CSV,,,,,,,,,,,,4,4,Mitigar,PM CSV,,,",
+        "deliverable,,Entregable CSV,,,,,,,,,C1,,,,,,PM CSV,2026-09-20,,",
+    ])
+    response = client.post(
+        "/api/projects/import/csv",
+        headers=headers,
+        files={"file": ("proyecto.csv", BytesIO(csv_data.encode("utf-8")), "text/csv")},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["project"]["name"] == "Proyecto CSV"
+    assert body["project"]["parameters"]["strategic_framework"]["general_objective"] == "Objetivo CSV"
+    assert body["counts"]["tasks"] == 2
+    assert body["counts"]["dependencies"] == 1
+    payload = client.get(f"/api/bootstrap?project_id={body['project_id']}", headers=headers).json()
+    assert len(payload["tasks"]) == 2
+    assert len(payload["dependencies"]) == 1
+    assert payload["risks"][0]["title"] == "Riesgo CSV"
 
 
 def test_rejects_invalid_task_progress(client):

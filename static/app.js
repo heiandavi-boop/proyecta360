@@ -760,6 +760,27 @@ function openNewProjectModal(){
   </div><p class="field-help">La fecha fin del proyecto no se digita manualmente: se calcula con duración, predecesoras y cronograma.</p><label>Descripción<textarea name="description" rows="3">Proyecto creado desde Proyecta360.</textarea></label>${modalActions('Crear proyecto')}</form>`);
   $('#projectForm').addEventListener('submit', async e=>{ e.preventDefault(); const body=Object.fromEntries(new FormData(e.target).entries()); body.budget=Number(body.budget||0); body.status='Planeado'; if(!body.contractual_end_date) delete body.contractual_end_date; body.parameters=state.defaults; const created=await request('/api/projects',{method:'POST', body:JSON.stringify(body)}); closeModal(); toast('Proyecto creado con fecha fin calculada'); await load(created.id); renderView('parameters'); });
 }
+function openImportProjectModal(){
+  openModal('Importar proyecto CSV', `<form id="importProjectForm">
+    <p class="field-help">El CSV debe incluir la columna <b>entity</b>. Usa filas tipo project, component, resource, task, dependency, sprint, story, risk, deliverable, conversation_thread o conversation_message. Para enlazar registros usa <b>import_id</b>, <b>component_ref</b>, <b>predecessor_ref</b>, <b>successor_ref</b>, <b>sprint_ref</b> o <b>thread_ref</b>.</p>
+    <label>Archivo CSV<input name="file" type="file" accept=".csv,text/csv" required></label>
+    <pre class="import-sample">entity,import_id,name,title,start_date,end_date,duration_days,predecessor_ref,successor_ref
+project,,Proyecto importado,,2026-09-01,2026-10-15,,, 
+task,T1,,Inicio del proyecto,2026-09-01,,1,,
+task,T2,,Plan de trabajo,2026-09-02,,5,,
+dependency,,, ,,,,T1,T2</pre>
+    ${modalActions('Importar proyecto')}
+  </form>`);
+  $('#importProjectForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const res = await request('/api/projects/import/csv', {method:'POST', body:fd});
+    closeModal();
+    toast(`Proyecto importado: ${res.project.name}`);
+    await load(res.project.id);
+    renderView('gantt');
+  });
+}
 function openLoginModal(){
   openModal('Ingreso', `<form id="loginForm"><div class="form-grid two">
     <label>Correo<input name="email" type="email" autocomplete="username" required></label>
@@ -1079,6 +1100,7 @@ function bindEvents(){
   on('#btnOpenParameters','click',()=>renderView('parameters'));
   on('#btnSaveParametersInline','click',saveParameters);
   on('#btnNewProject','click',openNewProjectModal);
+  on('#btnImportProject','click',openImportProjectModal);
   on('#btnAddStory','click',openStoryModal);
   on('#btnAddRisk','click',openRiskModal);
   on('#btnAddResource','click',openResourceModal);
