@@ -138,7 +138,8 @@ function timelineBounds(){
   const p = state.current_project;
   let min = parseDate(p.start_date), max = parseDate(p.end_date);
   state.tasks.forEach(t=>{ min = parseDate(t.start_date) < min ? parseDate(t.start_date) : min; max = parseDate(t.end_date) > max ? parseDate(t.end_date) : max; });
-  min.setDate(min.getDate()-3); max.setDate(max.getDate()+7);
+  min = new Date(min.getFullYear(), min.getMonth(), 1);
+  max = new Date(max.getFullYear(), max.getMonth() + 1, 0);
   return {min, max, total: Math.max(1, Math.round((max-min)/(1000*60*60*24)))};
 }
 function updateZoomControl(){
