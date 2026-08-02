@@ -39,6 +39,28 @@ DEFAULT_ADMIN_PASSWORD = os.getenv("PROYECTA360_ADMIN_PASSWORD", "admin123")
 DEFAULT_PM_PASSWORD = os.getenv("PROYECTA360_PM_PASSWORD", "demo123")
 DEFAULT_READONLY_PASSWORD = os.getenv("PROYECTA360_READONLY_PASSWORD", "consulta123")
 
+PROYECTA360_LAC_STRATEGIC_FRAMEWORK: Dict[str, str] = {
+    "problem_statement": "Los equipos que ejecutan proyectos financiados en Latinoamerica gestionan informacion critica en herramientas dispersas, lo que dificulta tener una vision integral y oportuna del estado real del proyecto.",
+    "current_situation": "La planificacion, los riesgos, el presupuesto, los entregables, las conversaciones y las evidencias se administran en silos. Esto aumenta el trabajo manual de seguimiento y reduce la capacidad de anticipar desviaciones.",
+    "main_gap": "Falta una plataforma contextual que conecte ejecucion, gobierno, conocimiento y analisis inteligente para apoyar decisiones durante todo el ciclo de vida del proyecto.",
+    "general_objective": "Construir una plataforma de inteligencia contextual para la ejecucion integral de proyectos, capaz de centralizar informacion estrategica y generar recomendaciones accionables para lideres y equipos.",
+    "specific_objectives": "1. Integrar cronograma, riesgos, recursos, presupuesto, entregables, evidencias y conversaciones en una unica vista operativa. 2. Incorporar un motor de analisis interno e IA configurable para interpretar el estado del proyecto. 3. Generar recomendaciones pendientes de aprobacion humana para mejorar control, trazabilidad y toma de decisiones. 4. Producir reportes ejecutivos y conocimiento reutilizable para financiadores y equipos.",
+    "objective_indicators": "Avance consolidado del proyecto; porcentaje de tareas criticas gestionadas; numero de riesgos altos con plan de mitigacion; porcentaje de entregables con evidencia; tiempo de generacion de reportes; recomendaciones IA aprobadas o aplicadas; satisfaccion de usuarios piloto.",
+    "expected_results": "MVP funcional de Proyecta360 LAC, proyectos piloto cargados, motor interno de analisis operativo, recomendaciones IA-ready, reportes ejecutivos exportables y base de conocimiento del proyecto.",
+    "success_criteria": "La plataforma permite conocer estado, riesgos, presupuesto, ruta critica, entregables y conversaciones desde una sola experiencia, y genera analisis accionables sin aplicar cambios automaticos.",
+    "political_context": "Los proyectos financiados en la region requieren transparencia, trazabilidad y capacidad de rendicion de cuentas ante instituciones, cooperantes y comites directivos.",
+    "geographic_context": "La solucion se orienta inicialmente a equipos distribuidos en Latinoamerica y el Caribe, con operacion remota y necesidades de coordinacion regional.",
+    "socioeconomic_context": "Las organizaciones necesitan maximizar el impacto de recursos limitados, reducir reprocesos administrativos y mejorar la visibilidad sobre ejecucion presupuestal y resultados.",
+    "cultural_context": "Los equipos combinan practicas tradicionales de gestion con enfoques agiles, por lo que la plataforma debe ser flexible, clara y facil de adoptar.",
+    "stakeholders_context": "Incluye project managers, PMO, equipos tecnicos, investigadores, financiadores, sponsors, usuarios clave, auditores y equipos de divulgacion.",
+    "institutional_context": "Proyecta360 LAC se ubica en un entorno de cooperacion, innovacion y gestion de conocimiento donde la evidencia y los reportes son parte central del cumplimiento.",
+    "target_population": "Lideres y equipos que gestionan proyectos financiados, investigacion aplicada, innovacion, cooperacion y transformacion institucional.",
+    "direct_beneficiaries": "Project managers, PMO, equipos tecnicos y responsables de seguimiento que necesitan una vision consolidada y accionable.",
+    "indirect_beneficiaries": "Sponsors, financiadores, usuarios finales, instituciones aliadas y comunidades impactadas por proyectos mejor ejecutados.",
+    "assumptions": "Los equipos cargaran informacion minima de cronograma, riesgos, presupuesto y entregables; los usuarios aprobaran recomendaciones antes de aplicarlas; la IA apoyara decisiones sin reemplazar criterio humano.",
+    "constraints": "El MVP debe priorizar usabilidad, seguridad, trazabilidad y bajo costo operativo; la IA real depende de configuracion de proveedor y cuota disponible.",
+}
+
 # ---------- DB helpers ----------
 def db() -> sqlite3.Connection:
     return connect(DB_PATH)
@@ -336,6 +358,22 @@ def refresh_outline_levels(conn: sqlite3.Connection, project_id: int) -> None:
     for r in rows:
         conn.execute("UPDATE tasks SET outline_level = ? WHERE id = ?", (level(int(r["id"])), int(r["id"])))
 
+
+def ensure_proyecta360_lac_strategic_framework(conn: sqlite3.Connection) -> None:
+    rows = all_rows(conn, "SELECT id, parameters_json FROM projects WHERE name IN (?, ?)", ("Proyecta360 LAC", "Proyecta360LAC"))
+    for row in rows:
+        params = loads(row.get("parameters_json"), DEFAULT_PARAMETERS) or {}
+        existing = params.get("strategic_framework") or {}
+        merged = {
+            key: (existing.get(key) if str(existing.get(key) or "").strip() else value)
+            for key, value in PROYECTA360_LAC_STRATEGIC_FRAMEWORK.items()
+        }
+        if existing == merged:
+            continue
+        params["strategic_framework"] = merged
+        conn.execute("UPDATE projects SET parameters_json = ? WHERE id = ?", (dumps(deep_merge(DEFAULT_PARAMETERS, params)), row["id"]))
+
+
 def init_db() -> None:
     with db() as conn:
         conn.executescript(
@@ -575,6 +613,7 @@ def init_db() -> None:
             """
         )
         ensure_schema_columns(conn)
+        ensure_proyecta360_lac_strategic_framework(conn)
         if not one(conn, "SELECT id FROM users LIMIT 1"):
             conn.executemany(
                 "INSERT INTO users (name, email, role, password_hash) VALUES (?, ?, ?, ?)",
@@ -847,6 +886,7 @@ def seed_database(conn: sqlite3.Connection) -> None:
         return
     start = date(2026, 7, 1)
     end = date(2026, 10, 15)
+    project_parameters = deep_merge(DEFAULT_PARAMETERS, {"strategic_framework": PROYECTA360_LAC_STRATEGIC_FRAMEWORK})
     cur = conn.execute(
         """INSERT INTO projects (name, description, sponsor, project_manager, start_date, end_date, methodology, status, budget, currency, parameters_json)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -861,7 +901,7 @@ def seed_database(conn: sqlite3.Connection) -> None:
             "En ejecución",
             125000000,
             "COP",
-            dumps(DEFAULT_PARAMETERS),
+            dumps(project_parameters),
         ),
     )
     project_id = cur.lastrowid

@@ -36,6 +36,25 @@ def test_bootstrap_seeds_default_project(client):
     assert payload["conversation_threads"]
     assert payload["conversation_messages"]
     assert payload["intelligence"]["recommendations"]
+    strategic = payload["current_project"]["parameters"]["strategic_framework"]
+    assert "plataforma de inteligencia contextual" in strategic["general_objective"]
+    assert strategic["objective_indicators"]
+
+
+def test_project_strategic_framework_can_be_updated(client):
+    headers = auth_headers(client)
+    payload = client.get("/api/bootstrap", headers=headers).json()
+    project_id = payload["current_project"]["id"]
+    response = client.put(
+        f"/api/projects/{project_id}",
+        headers=headers,
+        json={"parameters": {"strategic_framework": {"problem_statement": "Nueva brecha estrategica validada"}}},
+    )
+
+    assert response.status_code == 200
+    strategic = response.json()["parameters"]["strategic_framework"]
+    assert strategic["problem_statement"] == "Nueva brecha estrategica validada"
+    assert strategic["general_objective"]
 
 
 def test_rejects_invalid_task_progress(client):

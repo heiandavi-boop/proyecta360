@@ -393,6 +393,7 @@ function renderKnowledge(){
 function renderParameters(){
   const p=state.current_project; const params = p.parameters || state.defaults;
   const phases = (params.phases||[]).join(', '), tStatuses=(params.task_statuses||[]).join(', '), sStatuses=(params.story_statuses||[]).join(', '), methods=(params.execution_methodologies||[]).join(', ');
+  const sf = params.strategic_framework || {};
   $('#parametersForm').innerHTML = `
     <div class="parameter-block"><h3>Datos generales del proyecto</h3><div class="form-grid">
       <label>Nombre<input id="param_name" value="${escapeHtml(p.name)}"></label>
@@ -428,6 +429,29 @@ function renderParameters(){
       <label class="inline-check"><input id="param_weekly" type="checkbox" ${params.governance?.weekly_status_report?'checked':''}> Reporte semanal</label>
       <label class="inline-check"><input id="param_ai_enabled" type="checkbox" ${params.ai?.enabled?'checked':''}> IA habilitada</label>
       <label>Modelo IA<input id="param_ai_model" value="${escapeHtml(params.ai?.model || 'configurable')}"></label>
+    </div></div>
+    <div class="parameter-block"><h3>Marco Estrategico</h3><div class="form-grid two">
+      <label>Problema / brecha<textarea id="param_sf_problem_statement" rows="4">${escapeHtml(sf.problem_statement || '')}</textarea></label>
+      <label>Situacion actual<textarea id="param_sf_current_situation" rows="4">${escapeHtml(sf.current_situation || '')}</textarea></label>
+      <label>Brecha principal<textarea id="param_sf_main_gap" rows="3">${escapeHtml(sf.main_gap || '')}</textarea></label>
+      <label>Objetivo general<textarea id="param_sf_general_objective" rows="3">${escapeHtml(sf.general_objective || '')}</textarea></label>
+      <label>Objetivos especificos<textarea id="param_sf_specific_objectives" rows="5">${escapeHtml(sf.specific_objectives || '')}</textarea></label>
+      <label>Indicadores por objetivos<textarea id="param_sf_objective_indicators" rows="5">${escapeHtml(sf.objective_indicators || '')}</textarea></label>
+      <label>Resultados esperados<textarea id="param_sf_expected_results" rows="4">${escapeHtml(sf.expected_results || '')}</textarea></label>
+      <label>Criterios de exito<textarea id="param_sf_success_criteria" rows="4">${escapeHtml(sf.success_criteria || '')}</textarea></label>
+    </div></div>
+    <div class="parameter-block"><h3>Contexto del Proyecto</h3><div class="form-grid two">
+      <label>Contexto politico<textarea id="param_sf_political_context" rows="3">${escapeHtml(sf.political_context || '')}</textarea></label>
+      <label>Contexto geografico<textarea id="param_sf_geographic_context" rows="3">${escapeHtml(sf.geographic_context || '')}</textarea></label>
+      <label>Contexto socioeconomico<textarea id="param_sf_socioeconomic_context" rows="3">${escapeHtml(sf.socioeconomic_context || '')}</textarea></label>
+      <label>Contexto cultural<textarea id="param_sf_cultural_context" rows="3">${escapeHtml(sf.cultural_context || '')}</textarea></label>
+      <label>Partes interesadas<textarea id="param_sf_stakeholders_context" rows="3">${escapeHtml(sf.stakeholders_context || '')}</textarea></label>
+      <label>Contexto institucional<textarea id="param_sf_institutional_context" rows="3">${escapeHtml(sf.institutional_context || '')}</textarea></label>
+      <label>Poblacion objetivo<textarea id="param_sf_target_population" rows="3">${escapeHtml(sf.target_population || '')}</textarea></label>
+      <label>Beneficiarios directos<textarea id="param_sf_direct_beneficiaries" rows="3">${escapeHtml(sf.direct_beneficiaries || '')}</textarea></label>
+      <label>Beneficiarios indirectos<textarea id="param_sf_indirect_beneficiaries" rows="3">${escapeHtml(sf.indirect_beneficiaries || '')}</textarea></label>
+      <label>Supuestos<textarea id="param_sf_assumptions" rows="3">${escapeHtml(sf.assumptions || '')}</textarea></label>
+      <label>Restricciones<textarea id="param_sf_constraints" rows="3">${escapeHtml(sf.constraints || '')}</textarea></label>
     </div></div>`;
   $('#param_status').value = p.status;
 }
@@ -444,7 +468,28 @@ function collectParameters(){
     sprint: {duration_days: Number($('#param_sprint_days').value || 14), story_point_scale: [1,2,3,5,8,13]},
     risk_matrix: {probability_scale:[1,2,3,4,5], impact_scale:[1,2,3,4,5], medium_threshold:Number($('#param_medium').value||8), high_threshold:Number($('#param_high').value||15)},
     governance: {critical_path_enabled: $('#param_cp').checked, budget_control_enabled: $('#param_budget_control').checked, weekly_status_report: $('#param_weekly').checked, stage_gate_approval: true},
-    ai: {enabled: $('#param_ai_enabled').checked, model: $('#param_ai_model').value, use_project_documents:true, allow_create_tasks:true, allow_create_risks:true}
+    ai: {enabled: $('#param_ai_enabled').checked, model: $('#param_ai_model').value, use_project_documents:true, allow_create_tasks:true, allow_create_risks:true},
+    strategic_framework: {
+      problem_statement: $('#param_sf_problem_statement').value,
+      current_situation: $('#param_sf_current_situation').value,
+      main_gap: $('#param_sf_main_gap').value,
+      general_objective: $('#param_sf_general_objective').value,
+      specific_objectives: $('#param_sf_specific_objectives').value,
+      objective_indicators: $('#param_sf_objective_indicators').value,
+      expected_results: $('#param_sf_expected_results').value,
+      success_criteria: $('#param_sf_success_criteria').value,
+      political_context: $('#param_sf_political_context').value,
+      geographic_context: $('#param_sf_geographic_context').value,
+      socioeconomic_context: $('#param_sf_socioeconomic_context').value,
+      cultural_context: $('#param_sf_cultural_context').value,
+      stakeholders_context: $('#param_sf_stakeholders_context').value,
+      institutional_context: $('#param_sf_institutional_context').value,
+      target_population: $('#param_sf_target_population').value,
+      direct_beneficiaries: $('#param_sf_direct_beneficiaries').value,
+      indirect_beneficiaries: $('#param_sf_indirect_beneficiaries').value,
+      assumptions: $('#param_sf_assumptions').value,
+      constraints: $('#param_sf_constraints').value
+    }
   };
   return {
     name: $('#param_name').value,

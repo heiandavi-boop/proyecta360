@@ -42,6 +42,27 @@ DEFAULT_PARAMETERS: Dict[str, Any] = {
         "allow_create_tasks": True,
         "allow_create_risks": True,
     },
+    "strategic_framework": {
+        "problem_statement": "",
+        "current_situation": "",
+        "main_gap": "",
+        "general_objective": "",
+        "specific_objectives": "",
+        "objective_indicators": "",
+        "expected_results": "",
+        "success_criteria": "",
+        "political_context": "",
+        "geographic_context": "",
+        "socioeconomic_context": "",
+        "cultural_context": "",
+        "stakeholders_context": "",
+        "institutional_context": "",
+        "target_population": "",
+        "direct_beneficiaries": "",
+        "indirect_beneficiaries": "",
+        "assumptions": "",
+        "constraints": "",
+    },
 }
 
 SUPPORTED_CURRENCIES = ["COP", "USD", "EUR", "MXN", "PEN", "CLP", "BRL"]
