@@ -470,6 +470,7 @@ function renderView(view){
   state.view = view;
   $$('.view').forEach(v=>v.classList.add('hidden'));
   const el = $(`#view-${view}`) || $('#view-gantt'); el.classList.remove('hidden');
+  $('#kpiStrip')?.classList.toggle('hidden', view === 'portfolio');
   $$('.side-item,.top-tab').forEach(b=>b.classList.toggle('active', b.dataset.view===view || (view==='gantt' && ['Plan Maestro','Gantt'].includes(b.textContent.trim()))));
   if(view==='gantt') setTimeout(drawDependencies, 50);
   if(view==='ai') setTimeout(()=>$('#aiObjective')?.focus(), 50);
