@@ -33,10 +33,30 @@ def verify_password(password: str, stored_hash: str) -> bool:
     return hmac.compare_digest(stored_hash or "", legacy_hash_password(password))
 
 
+def password_needs_rehash(stored_hash: str) -> bool:
+    parts = (stored_hash or "").split("$")
+    if len(parts) != 4 or parts[0] != "pbkdf2_sha256":
+        return True
+    try:
+        return int(parts[1]) < int(os.getenv("PROYECTA360_PASSWORD_ITERATIONS", "260000"))
+    except ValueError:
+        return True
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
 def public_user(user: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     if not user:
         return None
-    return {"id": user["id"], "name": user["name"], "email": user["email"], "role": user["role"]}
+    return {
+        "id": user["id"],
+        "name": user["name"],
+        "email": user["email"],
+        "role": user["role"],
+        "organization_id": user.get("organization_id", 1),
+    }
 
 
 def user_from_authorization(

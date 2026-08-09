@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import math
@@ -16,61 +16,30 @@ from proyecta360.schemas.api import (
     AiRecommendationUpdate,
     AiReportIn,
     AiSettingsIn,
-    AuthLoginIn,
-    ComponentIn,
-    ConversationMessageIn,
-    ConversationThreadIn,
-    DeliverableIn,
-    DependencyIn,
-    ProjectIn,
-    ProjectUpdate,
-    ResourceIn,
-    RiskIn,
-    SprintIn,
-    StoryIn,
-    TaskIn,
-    TaskUpdate,
 )
+from proyecta360.services.internal_ai_engine import analyze_project_internal_ai
 
 
 def build_router(ctx) -> APIRouter:
     router = APIRouter()
     add_history = ctx.add_history
     all_rows = ctx.all_rows
-    bootstrap_payload = ctx.bootstrap_payload
     calculate_metrics = ctx.calculate_metrics
-    context_label = ctx.context_label
     db = ctx.db
-    deep_merge = ctx.deep_merge
     DEFAULT_PARAMETERS = ctx.DEFAULT_PARAMETERS
     dumps = ctx.dumps
     get_project_or_404 = ctx.get_project_or_404
     get_task_or_404 = ctx.get_task_or_404
-    get_thread_or_404 = ctx.get_thread_or_404
-    hash_password = ctx.hash_password
     init_db = ctx.init_db
-    iso_value = ctx.iso_value
     loads = ctx.loads
-    MAX_UPLOAD_BYTES = ctx.MAX_UPLOAD_BYTES
     normalize_task_dates = ctx.normalize_task_dates
     one = ctx.one
-    parse_iso = ctx.parse_iso
-    portfolio_summary = ctx.portfolio_summary
     project_intelligence = ctx.project_intelligence
-    public_user = ctx.public_user
     recalculate_project_schedule = ctx.recalculate_project_schedule
-    refresh_outline_levels = ctx.refresh_outline_levels
     risk_level = ctx.risk_level
-    safe_filename = ctx.safe_filename
-    seed_database = ctx.seed_database
     serialize_project = ctx.serialize_project
-    serialize_risk = ctx.serialize_risk
-    task_duration_days = ctx.task_duration_days
-    UPLOAD_DIR = ctx.UPLOAD_DIR
     user_from_authorization = ctx.user_from_authorization
     validate_dependency = ctx.validate_dependency
-    assert_component_in_project = ctx.assert_component_in_project
-    assert_task_in_project = ctx.assert_task_in_project
 
     def current_user(conn: sqlite3.Connection, request: Request) -> Dict[str, Any]:
         user = user_from_authorization(conn, request.headers.get("Authorization"))
@@ -287,10 +256,16 @@ def build_router(ctx) -> APIRouter:
 
     def project_snapshot(conn: sqlite3.Connection, project_id: int, includes: AiAnalysisIn) -> Dict[str, Any]:
         p = serialize_project(get_project_or_404(conn, project_id))
-        snapshot: Dict[str, Any] = {"project": p, "metrics": calculate_metrics(conn, project_id)}
+        snapshot: Dict[str, Any] = {
+            "project": p,
+            "project_context": p.get("ai_context", {}),
+            "metrics": calculate_metrics(conn, project_id),
+        }
         if includes.include_schedule:
             snapshot["tasks"] = all_rows(conn, "SELECT * FROM tasks WHERE project_id = ? ORDER BY order_index, id", (project_id,))
             snapshot["dependencies"] = all_rows(conn, "SELECT * FROM dependencies WHERE project_id = ? ORDER BY id", (project_id,))
+            snapshot["sprints"] = all_rows(conn, "SELECT * FROM sprints WHERE project_id = ? ORDER BY start_date, id", (project_id,))
+            snapshot["stories"] = all_rows(conn, "SELECT * FROM stories WHERE project_id = ? ORDER BY id", (project_id,))
         if includes.include_risks:
             snapshot["risks"] = all_rows(conn, "SELECT * FROM risks WHERE project_id = ? ORDER BY probability * impact DESC, id", (project_id,))
         if includes.include_resources:
@@ -306,6 +281,7 @@ def build_router(ctx) -> APIRouter:
         return snapshot
 
     def internal_rules_analysis(snapshot: Dict[str, Any]) -> Dict[str, Any]:
+        return analyze_project_internal_ai(snapshot)
         metrics = snapshot.get("metrics", {})
         project = snapshot.get("project", {})
         tasks = snapshot.get("tasks", [])
@@ -579,10 +555,24 @@ def build_router(ctx) -> APIRouter:
     def provider_label(settings: Dict[str, Any]) -> str:
         return provider_definition(settings.get("provider") or "openai")["name"]
 
-    def configured_ai_analysis(settings: Dict[str, Any], snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    def locale_name(locale: str = "") -> str:
+        code = (locale or "es").split("-")[0].lower()
+        return {
+            "en": "English",
+            "zh": "Chinese",
+            "hi": "Hindi",
+            "es": "Spanish",
+            "ar": "Arabic",
+        }.get(code, "Spanish")
+
+    def request_language(request: Request) -> str:
+        return locale_name(request.headers.get("X-Locale", "es"))
+
+    def configured_ai_analysis(settings: Dict[str, Any], snapshot: Dict[str, Any], language: str = "Spanish") -> Dict[str, Any]:
         system = (
             "Eres un copiloto experto en gestion de proyectos. Analiza el snapshot del proyecto y responde solo JSON valido. "
-            "Nunca apliques cambios. Solo propone recomendaciones pendientes para aprobacion humana."
+            "Nunca apliques cambios. Solo propone recomendaciones pendientes para aprobacion humana. "
+            f"Todos los textos descriptivos deben estar en {language}."
         )
         user = (
             "Devuelve exactamente un objeto JSON con project_health, summary, detected_issues y recommended_actions. "
@@ -715,6 +705,69 @@ def build_router(ctx) -> APIRouter:
         add_history(conn, project_id, "IA", rec["title"], "Recomendacion aplicada", f"{action} aplicado por {user['name']}", user["name"])
         return {"applied": True, "result": after}
 
+    def undo_ai_recommendation(conn: sqlite3.Connection, rec: Dict[str, Any], user: Dict[str, Any]) -> Dict[str, Any]:
+        if rec["status"] != "Aplicada":
+            raise HTTPException(status_code=400, detail="Solo una recomendacion aplicada puede deshacerse")
+        applied_event = one(
+            conn,
+            "SELECT * FROM ai_recommendation_history WHERE recommendation_id = ? AND event_type = 'Aplicada' ORDER BY created_at DESC, id DESC LIMIT 1",
+            (rec["id"],),
+        )
+        if not applied_event:
+            raise HTTPException(status_code=400, detail="No se encontro historial de aplicacion para deshacer")
+        payload = ai_payload(rec)
+        action = rec["action_type"]
+        project_id = int(rec["project_id"])
+        before = loads(applied_event.get("previous_json") or "{}", {})
+        after = loads(applied_event.get("new_json") or "{}", {})
+        undone: Any = {"action": action}
+        if action == "create_task":
+            task_id = int(after.get("id") or 0)
+            if task_id:
+                conn.execute("DELETE FROM dependencies WHERE predecessor_id = ? OR successor_id = ?", (task_id, task_id))
+                conn.execute("DELETE FROM tasks WHERE id = ? AND project_id = ?", (task_id, project_id))
+                recalculate_project_schedule(conn, project_id)
+                undone = {"deleted_task_id": task_id}
+        elif action == "update_task":
+            task_id = int(before.get("id") or payload.get("task_id") or rec.get("target_entity_id") or 0)
+            if task_id and before:
+                fields = {k: before[k] for k in ["title", "progress", "owner", "status", "description", "duration_days", "start_date", "end_date"] if k in before}
+                if fields:
+                    conn.execute("UPDATE tasks SET " + ", ".join([f"{k}=?" for k in fields]) + " WHERE id = ? AND project_id = ?", tuple(fields.values()) + (task_id, project_id))
+                    recalculate_project_schedule(conn, project_id)
+                undone = {"restored_task_id": task_id}
+        elif action == "create_dependency":
+            dep_id = int(after.get("id") or 0)
+            if dep_id:
+                conn.execute("DELETE FROM dependencies WHERE id = ? AND project_id = ?", (dep_id, project_id))
+                recalculate_project_schedule(conn, project_id)
+                undone = {"deleted_dependency_id": dep_id}
+        elif action == "create_risk":
+            risk_id = int(after.get("id") or 0)
+            if risk_id:
+                conn.execute("DELETE FROM risks WHERE id = ? AND project_id = ?", (risk_id, project_id))
+                undone = {"deleted_risk_id": risk_id}
+        elif action in {"update_risk", "add_mitigation_plan", "add_contingency_plan"}:
+            risk_id = int(before.get("id") or payload.get("risk_id") or rec.get("target_entity_id") or 0)
+            if risk_id and before:
+                fields = {k: before[k] for k in ["title", "response", "mitigation_plan", "contingency_plan", "status", "owner"] if k in before}
+                if fields:
+                    conn.execute("UPDATE risks SET " + ", ".join([f"{k}=?" for k in fields]) + " WHERE id = ? AND project_id = ?", tuple(fields.values()) + (risk_id, project_id))
+                undone = {"restored_risk_id": risk_id}
+        elif action == "create_deliverable":
+            deliverable_id = int(after.get("id") or 0)
+            if deliverable_id:
+                conn.execute("DELETE FROM deliverables WHERE id = ? AND project_id = ?", (deliverable_id, project_id))
+                undone = {"deleted_deliverable_id": deliverable_id}
+        elif action in {"request_evidence", "create_alert", "update_project_status"}:
+            undone = {"message": "Se retiro la aplicacion operativa de la recomendacion."}
+        else:
+            raise HTTPException(status_code=400, detail="Tipo de accion IA no soportado para deshacer")
+        conn.execute("UPDATE ai_recommendations SET status = 'Aprobada', applied_at = '', error_message = '' WHERE id = ?", (rec["id"],))
+        rec_history(conn, rec["id"], "Deshecha", user["id"], f"Aplicacion deshecha: {action}", after, undone)
+        add_history(conn, project_id, "IA", rec["title"], "Aplicacion deshecha", f"{action} deshecho por {user['name']}", user["name"])
+        return {"undone": True, "result": undone}
+
     @router.get("/api/ai/settings")
     def get_ai_settings() -> Dict[str, Any]:
         with db() as conn:
@@ -808,7 +861,7 @@ def build_router(ctx) -> APIRouter:
             notice = "Motor interno activo: analisis generado con reglas de Proyecta360. Configure y pruebe una API Key para usar IA real."
             if ai_settings_ready(settings):
                 try:
-                    result = configured_ai_analysis(settings, snapshot)
+                    result = configured_ai_analysis(settings, snapshot, request_language(request))
                     notice = ""
                 except HTTPException as exc:
                     now = datetime.utcnow().isoformat()
@@ -928,6 +981,17 @@ def build_router(ctx) -> APIRouter:
                 conn.commit()
                 raise HTTPException(status_code=400, detail=f"Error al aplicar recomendacion: {exc}")
 
+    @router.post("/api/ai/recommendations/{recommendation_id}/undo")
+    def undo_recommendation(recommendation_id: int, request: Request) -> Dict[str, Any]:
+        with db() as conn:
+            user = current_user(conn, request)
+            row = one(conn, "SELECT * FROM ai_recommendations WHERE id = ?", (recommendation_id,))
+            if not row:
+                raise HTTPException(status_code=404, detail="Recomendacion IA no encontrada")
+            result = undo_ai_recommendation(conn, row, user)
+            conn.commit()
+            return result
+
     @router.get("/api/projects/{project_id}/ai/history")
     def ai_history(project_id: int) -> Dict[str, Any]:
         with db() as conn:
@@ -956,7 +1020,7 @@ def build_router(ctx) -> APIRouter:
                 snapshot = project_snapshot(conn, project_id, AiAnalysisIn())
                 if ai_settings_ready(settings):
                     try:
-                        result = configured_ai_analysis(settings, snapshot)
+                        result = configured_ai_analysis(settings, snapshot, request_language(request))
                     except HTTPException as exc:
                         now = datetime.utcnow().isoformat()
                         conn.execute("UPDATE ai_settings SET status='Error', last_test_at=?, last_error=? WHERE id=?", (now, str(exc.detail), settings["id"]))
@@ -969,7 +1033,7 @@ def build_router(ctx) -> APIRouter:
                 return {"mode": "accion", "answer": f"Se generaron recomendaciones pendientes con {engine}. Revisa y aprueba antes de aplicar.", **persisted}
             if ai_settings_ready(settings):
                 snapshot = project_snapshot(conn, project_id, AiAnalysisIn())
-                prompt = f"Responde en espanol, con base solo en este snapshot del proyecto. Pregunta: {payload.message}\nSnapshot: {dumps(snapshot)}"
+                prompt = f"Respond in {request_language(request)}, using only this project snapshot. Question: {payload.message}\nSnapshot: {dumps(snapshot)}"
                 try:
                     answer = ai_provider_request(settings, [{"role": "user", "content": prompt}], False)
                 except HTTPException as exc:

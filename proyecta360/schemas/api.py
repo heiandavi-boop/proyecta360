@@ -67,6 +67,133 @@ class ProjectUpdate(BaseModel):
         return value
 
 
+PROJECT_PROFILE_FIELDS = {"project_code", "requesting_area", "project_type", "priority", "responsible_team"}
+PROJECT_CONTEXT_FIELDS = {
+    "problem_statement", "current_situation", "consequence_if_not_done", "general_objective",
+    "specific_objectives", "objective_indicators", "scope_included", "scope_excluded",
+    "success_criteria", "assumptions", "constraints", "project_context", "political_context",
+    "geographic_context", "socioeconomic_context", "cultural_context", "institutional_context",
+    "stakeholders", "stakeholders_context", "external_dependencies", "regulatory_constraints",
+}
+
+
+class ProjectIn(BaseModel):
+    name: str = Field(min_length=1, max_length=160)
+    project_code: str = ""
+    description: str = ""
+    sponsor: str = ""
+    project_manager: str = ""
+    requesting_area: str = ""
+    project_type: str = ""
+    start_date: date
+    end_date: Optional[date] = None
+    contractual_end_date: Optional[date] = None
+    methodology: str = "Hibrida"
+    priority: str = "Media"
+    status: str = "En ejecucion"
+    budget: float = Field(default=0, ge=0)
+    currency: str = Field(default="COP", min_length=1, max_length=8)
+    responsible_team: str = ""
+    problem_statement: str = ""
+    current_situation: str = ""
+    consequence_if_not_done: str = ""
+    general_objective: str = ""
+    specific_objectives: str = ""
+    objective_indicators: str = ""
+    scope_included: str = ""
+    scope_excluded: str = ""
+    success_criteria: str = ""
+    assumptions: str = ""
+    constraints: str = ""
+    project_context: str = ""
+    political_context: str = ""
+    geographic_context: str = ""
+    socioeconomic_context: str = ""
+    cultural_context: str = ""
+    institutional_context: str = ""
+    stakeholders: str = ""
+    stakeholders_context: str = ""
+    external_dependencies: str = ""
+    regulatory_constraints: str = ""
+    parameters: Dict[str, Any] = Field(default_factory=lambda: json.loads(dumps(DEFAULT_PARAMETERS)))
+
+    @field_validator("currency")
+    @classmethod
+    def validate_currency(cls, value: str) -> str:
+        value = value.upper().strip()
+        if value not in SUPPORTED_CURRENCIES:
+            raise ValueError("Moneda invalida. Selecciona una moneda del catalogo.")
+        return value
+
+    @model_validator(mode="after")
+    def validate_dates(self) -> "ProjectIn":
+        if self.end_date is None:
+            self.end_date = self.start_date
+        if self.contractual_end_date and self.contractual_end_date < self.start_date:
+            raise ValueError("La fecha compromiso no puede ser menor a la fecha inicio")
+        if not self.contractual_end_date:
+            raise ValueError("La fecha compromiso es obligatoria")
+        strategic = self.parameters.get("strategic_framework", {}) if isinstance(self.parameters, dict) else {}
+        problem = self.problem_statement or strategic.get("problem_statement") or strategic.get("main_gap")
+        objective = self.general_objective or strategic.get("general_objective")
+        if not str(problem or "").strip():
+            raise ValueError("El problema o brecha que resuelve el proyecto es obligatorio")
+        if not str(objective or "").strip():
+            raise ValueError("El objetivo general es obligatorio")
+        return self
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=160)
+    project_code: Optional[str] = None
+    description: Optional[str] = None
+    sponsor: Optional[str] = None
+    project_manager: Optional[str] = None
+    requesting_area: Optional[str] = None
+    project_type: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    contractual_end_date: Optional[date] = None
+    methodology: Optional[str] = None
+    priority: Optional[str] = None
+    status: Optional[str] = None
+    budget: Optional[float] = Field(default=None, ge=0)
+    currency: Optional[str] = Field(default=None, min_length=1, max_length=8)
+    responsible_team: Optional[str] = None
+    problem_statement: Optional[str] = None
+    current_situation: Optional[str] = None
+    consequence_if_not_done: Optional[str] = None
+    general_objective: Optional[str] = None
+    specific_objectives: Optional[str] = None
+    objective_indicators: Optional[str] = None
+    scope_included: Optional[str] = None
+    scope_excluded: Optional[str] = None
+    success_criteria: Optional[str] = None
+    assumptions: Optional[str] = None
+    constraints: Optional[str] = None
+    project_context: Optional[str] = None
+    political_context: Optional[str] = None
+    geographic_context: Optional[str] = None
+    socioeconomic_context: Optional[str] = None
+    cultural_context: Optional[str] = None
+    institutional_context: Optional[str] = None
+    stakeholders: Optional[str] = None
+    stakeholders_context: Optional[str] = None
+    external_dependencies: Optional[str] = None
+    regulatory_constraints: Optional[str] = None
+    parameters: Optional[Dict[str, Any]] = None
+
+    @field_validator("currency")
+    @classmethod
+    def validate_currency(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        value = value.upper().strip()
+        if value not in SUPPORTED_CURRENCIES:
+            raise ValueError("Moneda invalida. Selecciona una moneda del catalogo.")
+        return value
+
+
 class TaskIn(BaseModel):
     project_id: int
     parent_id: Optional[int] = None
@@ -179,6 +306,7 @@ class SprintIn(BaseModel):
 class StoryIn(BaseModel):
     project_id: int
     sprint_id: Optional[int] = None
+    master_task_id: Optional[int] = None
     title: str = Field(min_length=1, max_length=220)
     status: str = "Por hacer"
     points: int = Field(default=0, ge=0)

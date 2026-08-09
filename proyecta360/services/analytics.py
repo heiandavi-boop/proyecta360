@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, Dict, List
 
+from proyecta360.services.project_schedule import critical_path_task_ids
+
 
 def calculate_metrics(
     project: Dict[str, Any],
@@ -24,10 +26,7 @@ def calculate_metrics(
         t for t in work_tasks
         if t["end_date"] < current_day and int(t["progress"] or 0) < 100 and t["task_type"] != "milestone"
     ]
-    critical_ids = set()
-    for dependency in dependencies:
-        critical_ids.add(dependency["predecessor_id"])
-        critical_ids.add(dependency["successor_id"])
+    critical_ids = critical_path_task_ids(tasks, dependencies)
     critical_open = [t for t in work_tasks if t["id"] in critical_ids and int(t["progress"] or 0) < 100]
     health = "Saludable"
     if high_risks >= 2 or len(delayed_tasks) >= 3:
