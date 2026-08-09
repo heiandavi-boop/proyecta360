@@ -36,9 +36,13 @@ def build_router(ctx) -> APIRouter:
             params = loads(p["parameters_json"], DEFAULT_PARAMETERS)
             level = risk_level(payload.probability, payload.impact, params)
             cur = conn.execute(
-                """INSERT INTO risks (project_id, title, probability, impact, level, response, mitigation_plan, contingency_plan, status, owner)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (payload.project_id, payload.title, payload.probability, payload.impact, level, payload.response, payload.mitigation_plan, payload.contingency_plan, payload.status, payload.owner),
+                """INSERT INTO risks (project_id, title, probability, impact, level, response, mitigation_plan, contingency_plan, status, owner, materialized_date, actual_impact, observations)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    payload.project_id, payload.title, payload.probability, payload.impact, level, payload.response,
+                    payload.mitigation_plan, payload.contingency_plan, payload.status, payload.owner,
+                    iso_value(payload.materialized_date) if payload.materialized_date else "", payload.actual_impact, payload.observations,
+                ),
             )
             add_history(conn, payload.project_id, "Riesgo", payload.title, "Creado", f"Nivel: {level}. Mitigacion y contingencia registradas.")
             conn.commit()

@@ -9,10 +9,10 @@ type ProjectShellProps = {
   data: BootstrapPayload;
   children: ReactNode;
   loading?: boolean;
-  onProjectChange: (projectId: number) => void;
+  onProjectChange?: (projectId: number) => void;
 };
 
-export function ProjectShell({ activeView, data, children, loading = false, onProjectChange }: ProjectShellProps) {
+export function ProjectShell({ activeView, data, children }: ProjectShellProps) {
   const { t } = useI18n();
   const project = data.current_project;
 
@@ -24,14 +24,6 @@ export function ProjectShell({ activeView, data, children, loading = false, onPr
           <p>{project.description || t("project.noDescription")}</p>
         </div>
         <div className="project-controls">
-          <select
-            aria-label={t("project.label")}
-            disabled={loading}
-            onChange={(event) => onProjectChange(Number(event.target.value))}
-            value={project.id}
-          >
-            {data.projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
           <span className="view-pill">{t(`view.${activeView}`)}</span>
         </div>
       </section>

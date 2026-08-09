@@ -57,13 +57,12 @@ def serialize_evidence(evidence: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def risk_level(probability: int, impact: int, parameters: Optional[Dict[str, Any]] = None) -> str:
-    params = parameters or DEFAULT_PARAMETERS
     score = probability * impact
-    high = params.get("risk_matrix", {}).get("high_threshold", 15)
-    medium = params.get("risk_matrix", {}).get("medium_threshold", 8)
-    if score >= high:
+    if score >= 17:
+        return "Critico"
+    if score >= 10:
         return "Alto"
-    if score >= medium:
+    if score >= 5:
         return "Medio"
     return "Bajo"
 

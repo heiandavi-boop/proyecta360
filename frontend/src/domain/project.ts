@@ -18,14 +18,26 @@ export type Project = {
 
 export type ProjectMetrics = {
   progress: number;
+  expected_progress: number;
+  progress_variance_pp: number;
   health: string;
+  phs: number;
+  schedule_score: number;
+  budget_score: number;
+  risk_score: number;
   budget: number;
   spent: number;
+  planned_spent: number;
+  budget_executed_percent: number;
+  budget_expected_percent: number;
+  budget_variance_pp: number;
   remaining_budget: number;
   open_risks: number;
   high_risks: number;
   delayed_tasks: number;
   critical_path_tasks: number;
+  at_risk_milestones: number;
+  next_milestone?: { title?: string; end_date?: string } | null;
 };
 
 export type Task = {
@@ -70,6 +82,9 @@ export type Risk = {
   contingency_plan?: string;
   status: string;
   owner: string;
+  materialized_date?: string;
+  actual_impact?: string;
+  observations?: string;
 };
 
 export type Resource = {

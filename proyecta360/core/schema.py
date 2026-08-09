@@ -101,7 +101,10 @@ CREATE TABLE IF NOT EXISTS risks (
     mitigation_plan TEXT DEFAULT '',
     contingency_plan TEXT DEFAULT '',
     status TEXT DEFAULT 'Abierto',
-    owner TEXT DEFAULT ''
+    owner TEXT DEFAULT '',
+    materialized_date TEXT DEFAULT '',
+    actual_impact TEXT DEFAULT '',
+    observations TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS deliverables (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -326,6 +329,12 @@ def ensure_schema_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE risks ADD COLUMN mitigation_plan TEXT DEFAULT ''")
     if "contingency_plan" not in risk_cols:
         conn.execute("ALTER TABLE risks ADD COLUMN contingency_plan TEXT DEFAULT ''")
+    if "materialized_date" not in risk_cols:
+        conn.execute("ALTER TABLE risks ADD COLUMN materialized_date TEXT DEFAULT ''")
+    if "actual_impact" not in risk_cols:
+        conn.execute("ALTER TABLE risks ADD COLUMN actual_impact TEXT DEFAULT ''")
+    if "observations" not in risk_cols:
+        conn.execute("ALTER TABLE risks ADD COLUMN observations TEXT DEFAULT ''")
 
     user_cols = columns("users")
     if "organization_id" not in user_cols:

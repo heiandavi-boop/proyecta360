@@ -43,8 +43,11 @@ export function RisksView({ busy = false, canWrite = true, data, onCreateRisk }:
     response: "Mitigar",
     mitigation_plan: "",
     contingency_plan: "",
-    status: "Abierto",
+    status: "Activo",
     owner: "",
+    materialized_date: null,
+    actual_impact: "",
+    observations: "",
   });
 
   async function submitRisk(event: FormEvent<HTMLFormElement>) {
@@ -69,15 +72,19 @@ export function RisksView({ busy = false, canWrite = true, data, onCreateRisk }:
           <label>{t("risk.probability15")}<input max="5" min="1" type="number" value={draft.probability || 1} onChange={(event) => setDraft({ ...draft, probability: Number(event.target.value) })} /></label>
           <label>{t("risk.impact15")}<input max="5" min="1" type="number" value={draft.impact || 1} onChange={(event) => setDraft({ ...draft, impact: Number(event.target.value) })} /></label>
           <label>{t("common.owner")}<select value={draft.owner || ""} onChange={(event) => setDraft({ ...draft, owner: event.target.value })}><option value="">{t("knowledge.noOwner")}</option>{ownerOptions.map((owner) => <option key={owner} value={owner}>{owner}</option>)}</select></label>
+          <label>Estado<select value={draft.status || "Activo"} onChange={(event) => setDraft({ ...draft, status: event.target.value })}><option>Activo</option><option>Materializado</option><option>Cerrado</option></select></label>
+          <label>Fecha de materializacion<input type="date" value={draft.materialized_date || ""} onChange={(event) => setDraft({ ...draft, materialized_date: event.target.value || null })} /></label>
           <label>{t("risk.mitigationPlan")}<input value={draft.mitigation_plan || ""} onChange={(event) => setDraft({ ...draft, mitigation_plan: event.target.value })} /></label>
           <label>{t("risk.contingencyPlan")}<input value={draft.contingency_plan || ""} onChange={(event) => setDraft({ ...draft, contingency_plan: event.target.value })} /></label>
+          <label>Impacto real<input value={draft.actual_impact || ""} onChange={(event) => setDraft({ ...draft, actual_impact: event.target.value })} /></label>
+          <label className="wide-field">Observaciones<input value={draft.observations || ""} onChange={(event) => setDraft({ ...draft, observations: event.target.value })} /></label>
           <div className="form-actions"><button className="icon-button" onClick={() => setShowForm(false)} type="button">{t("common.cancel")}</button><button className="primary-action" disabled={busy} type="submit">{busy ? t("common.saving") : t("common.create")}</button></div>
         </form>
       ) : null}
       <div className="panel">
         <div className="table-scroll">
           <table className="data-table">
-            <thead><tr><th>{t("risks.risk")}</th><th>{t("risks.level")}</th><th>{t("risks.probability")}</th><th>{t("risks.impact")}</th><th>{t("risk.strategy")}</th><th>{t("risks.mitigation")}</th><th>{t("risks.contingency")}</th><th>{t("common.owner")}</th><th>{t("common.status")}</th></tr></thead>
+            <thead><tr><th>{t("risks.risk")}</th><th>{t("risks.level")}</th><th>{t("risks.probability")}</th><th>{t("risks.impact")}</th><th>{t("risk.strategy")}</th><th>{t("risks.mitigation")}</th><th>{t("risks.contingency")}</th><th>{t("common.owner")}</th><th>{t("common.status")}</th><th>Materializacion</th><th>Impacto real</th></tr></thead>
             <tbody>
               {data.risks.map((risk) => (
                 <tr key={risk.id}>
@@ -90,6 +97,8 @@ export function RisksView({ busy = false, canWrite = true, data, onCreateRisk }:
                   <td>{risk.contingency_plan || "-"}</td>
                   <td>{risk.owner || t("knowledge.noOwner")}</td>
                   <td><span className="badge neutral">{risk.status}</span></td>
+                  <td>{risk.materialized_date || "-"}</td>
+                  <td>{risk.actual_impact || risk.observations || "-"}</td>
                 </tr>
               ))}
             </tbody>

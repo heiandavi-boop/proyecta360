@@ -28,6 +28,10 @@ def build_router(ctx) -> APIRouter:
     validate_dependency = ctx.validate_dependency
     assert_component_in_project = ctx.assert_component_in_project
     assert_task_in_project = ctx.assert_task_in_project
+
+    def has_children(conn, task_id: int) -> bool:
+        return bool(one(conn, "SELECT id FROM tasks WHERE parent_id = ? LIMIT 1", (task_id,)))
+
     @router.post("/api/tasks")
     def create_task(payload: TaskIn) -> Dict[str, Any]:
         with db() as conn:
@@ -76,6 +80,11 @@ def build_router(ctx) -> APIRouter:
                     raise HTTPException(status_code=400, detail="Una tarea no puede ser padre de s? misma")
                 assert_task_in_project(conn, int(data["parent_id"]), task["project_id"], "La tarea padre")
             next_type = data.get("task_type", task["task_type"])
+            if has_children(conn, task_id):
+                for calculated_field in ("start_date", "end_date", "duration_days", "progress"):
+                    data.pop(calculated_field, None)
+                data["task_type"] = "summary"
+                next_type = "summary"
             start_value = data.get("start_date", parse_iso(task["start_date"]))
             end_value = data.get("end_date", parse_iso(task["end_date"])) if data.get("end_date") is not None else None
             duration_value = data.get("duration_days", task.get("duration_days") if task.get("duration_days") is not None else task_duration_days(task["start_date"], task["end_date"], next_type))

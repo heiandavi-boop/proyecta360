@@ -131,15 +131,6 @@ class ProjectIn(BaseModel):
             self.end_date = self.start_date
         if self.contractual_end_date and self.contractual_end_date < self.start_date:
             raise ValueError("La fecha compromiso no puede ser menor a la fecha inicio")
-        if not self.contractual_end_date:
-            raise ValueError("La fecha compromiso es obligatoria")
-        strategic = self.parameters.get("strategic_framework", {}) if isinstance(self.parameters, dict) else {}
-        problem = self.problem_statement or strategic.get("problem_statement") or strategic.get("main_gap")
-        objective = self.general_objective or strategic.get("general_objective")
-        if not str(problem or "").strip():
-            raise ValueError("El problema o brecha que resuelve el proyecto es obligatorio")
-        if not str(objective or "").strip():
-            raise ValueError("El objetivo general es obligatorio")
         return self
 
 
@@ -322,8 +313,11 @@ class RiskIn(BaseModel):
     response: str = ""
     mitigation_plan: str = ""
     contingency_plan: str = ""
-    status: str = "Abierto"
+    status: str = "Activo"
     owner: str = ""
+    materialized_date: Optional[date] = None
+    actual_impact: str = ""
+    observations: str = ""
 
 
 class ResourceIn(BaseModel):

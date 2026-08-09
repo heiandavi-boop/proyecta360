@@ -117,7 +117,7 @@ def test_create_project_captures_context_for_ai(client):
     assert project["ai_context"]["stakeholders"] == "PMO, direcciones regionales y sponsor"
 
 
-def test_create_project_requires_problem_and_general_objective(client):
+def test_create_project_allows_context_fields_to_be_completed_later(client):
     response = client.post(
         "/api/projects",
         headers=auth_headers(client),
@@ -132,7 +132,11 @@ def test_create_project_requires_problem_and_general_objective(client):
         },
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 200
+    project = response.json()
+    assert project["name"] == "Proyecto incompleto"
+    assert project["problem_statement"] == ""
+    assert project["general_objective"] == ""
 
 
 def test_update_project_context_fields(client):

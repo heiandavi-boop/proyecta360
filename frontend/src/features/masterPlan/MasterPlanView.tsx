@@ -442,7 +442,7 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
                     <span>{task.end_date || task.start_date}</span>
                     <span title={String(predecessor)}>{predecessor}</span>
                     <span title={task.owner || "PMO"}>{task.owner || "PMO"}</span>
-                    <span className="gantt-progress-cell"><input className="grid-control" defaultValue={task.progress} disabled={busy || !canWrite} max="100" min="0" onBlur={(event) => canWrite ? void onUpdateTask(task.id, { progress: Number(event.target.value) }) : undefined} type="number" /><b>{task.progress}%</b></span>
+                    <span className="gantt-progress-cell"><input className="grid-control" defaultValue={task.progress} disabled={busy || !canWrite || hasChildren} max="100" min="0" onBlur={(event) => canWrite && !hasChildren ? void onUpdateTask(task.id, { progress: Number(event.target.value) }) : undefined} title={hasChildren ? "El avance de una tarea resumen se calcula desde sus hijas." : undefined} type="number" /><b>{task.progress}%</b></span>
                     <span className="row-context">
                       {(canWrite || storiesByTask[task.id]?.length) ? <button className="row-menu-trigger" disabled={busy} onClick={(event) => { event.stopPropagation(); setSelectedTaskId(task.id); setOpenMenuId((current) => current === task.id ? null : task.id); }} title="Mas opciones" type="button">...</button> : null}
                       {openMenuId === task.id ? (
@@ -452,7 +452,7 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
                           {canWrite ? <button disabled={busy || outline >= 5} onClick={() => void runMenuAction("subtask", task, index)} type="button">Agregar subtarea</button> : null}
                           {canWrite ? <button disabled={busy} onClick={() => void runMenuAction("below", task, index)} type="button">Agregar tarea debajo</button> : null}
                           {canWrite ? <button disabled={busy} onClick={() => void runMenuAction("edit", task, index)} type="button">Editar nombre</button> : null}
-                          {canWrite ? <button disabled={busy || task.task_type === "milestone"} onClick={() => void runMenuAction("milestone", task, index)} type="button">Convertir en hito</button> : null}
+                          {canWrite ? <button disabled={busy || task.task_type === "milestone" || hasChildren} onClick={() => void runMenuAction("milestone", task, index)} type="button">Convertir en hito</button> : null}
                           {canWrite ? <button disabled={busy || !hasChildren} onClick={() => void runMenuAction("toggle", task, index)} type="button">{isExpanded ? "Contraer" : "Expandir"}</button> : null}
                           <button disabled={busy || !storiesByTask[task.id]?.length} onClick={() => void runMenuAction("scrum", task, index)} type="button">Ver Scrum asociado</button>
                           {canWrite ? <button disabled={busy} onClick={() => void runMenuAction("linkScrum", task, index)} type="button">Vincular con Scrum</button> : null}

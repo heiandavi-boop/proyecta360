@@ -3642,11 +3642,33 @@
           "status": {
             "type": "string",
             "title": "Status",
-            "default": "Abierto"
+            "default": "Activo"
           },
           "owner": {
             "type": "string",
             "title": "Owner",
+            "default": ""
+          },
+          "materialized_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Materialized Date"
+          },
+          "actual_impact": {
+            "type": "string",
+            "title": "Actual Impact",
+            "default": ""
+          },
+          "observations": {
+            "type": "string",
+            "title": "Observations",
             "default": ""
           }
         },

@@ -665,6 +665,41 @@ textarea {
   font-size: 12px;
 }
 
+.portfolio-table td small,
+.score-breakdown,
+.signal {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.2;
+}
+
+.signal.success {
+  color: #047857;
+}
+
+.signal.warning {
+  color: #b45309;
+}
+
+.signal.danger {
+  color: #b91c1c;
+}
+
+.tab-description,
+.form-group-label {
+  margin: 0;
+  color: var(--muted);
+}
+
+.form-group-label {
+  font-weight: 800;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
 .data-table th,
 .data-table td {
   border-bottom: 1px solid #edf2f7;

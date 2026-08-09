@@ -210,9 +210,12 @@ export interface ResourceIn {
 }
 
 export interface RiskIn {
+  "actual_impact"?: string;
   "contingency_plan"?: string;
   "impact"?: number;
+  "materialized_date"?: null | string;
   "mitigation_plan"?: string;
+  "observations"?: string;
   "owner"?: string;
   "probability"?: number;
   "project_id": number;
