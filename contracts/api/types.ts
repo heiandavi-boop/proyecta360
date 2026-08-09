@@ -66,6 +66,15 @@ export interface Body_upload_evidence_api_evidences_upload_post {
   "uploaded_by"?: string;
 }
 
+export interface BudgetEntryIn {
+  "category"?: string;
+  "executed_amount"?: number;
+  "month": string;
+  "notes"?: string;
+  "planned_amount"?: number;
+  "project_id": number;
+}
+
 export interface ComponentIn {
   "methodology"?: string;
   "name": string;
@@ -415,6 +424,18 @@ export interface ApiOperationMap {
     path: "/api/bootstrap";
     request: undefined;
     response: Record<string, unknown>;
+  };
+  "create_budget_entry_api_budget_entries_post": {
+    method: "POST";
+    path: "/api/budget-entries";
+    request: BudgetEntryIn;
+    response: Record<string, unknown>;
+  };
+  "delete_budget_entry_api_budget_entries__entry_id__delete": {
+    method: "DELETE";
+    path: "/api/budget-entries/{entry_id}";
+    request: undefined;
+    response: Record<string, string>;
   };
   "create_component_api_components_post": {
     method: "POST";

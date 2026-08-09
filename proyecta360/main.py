@@ -118,7 +118,8 @@ def calculate_metrics(conn: sqlite3.Connection, project_id: int) -> Dict[str, An
     risks = all_rows(conn, "SELECT * FROM risks WHERE project_id = ?", (project_id,))
     stories = all_rows(conn, "SELECT * FROM stories WHERE project_id = ?", (project_id,))
     deps = all_rows(conn, "SELECT * FROM dependencies WHERE project_id = ?", (project_id,))
-    return analytics_service.calculate_metrics(p, tasks, risks, stories, deps)
+    budget_entries = all_rows(conn, "SELECT * FROM budget_entries WHERE project_id = ? ORDER BY month, category, id", (project_id,))
+    return analytics_service.calculate_metrics(p, tasks, risks, stories, deps, budget_entries)
 
 
 
@@ -157,6 +158,7 @@ def bootstrap_payload(conn: sqlite3.Connection, project_id: Optional[int] = None
         "stories": all_rows(conn, "SELECT * FROM stories WHERE project_id = ? ORDER BY id", (selected,)),
         "risks": [serialize_risk(r) for r in all_rows(conn, "SELECT * FROM risks WHERE project_id = ? ORDER BY id", (selected,))],
         "resources": all_rows(conn, "SELECT * FROM resources WHERE project_id = ? ORDER BY id", (selected,)),
+        "budget_entries": all_rows(conn, "SELECT * FROM budget_entries WHERE project_id = ? ORDER BY month, category, id", (selected,)),
         "components": all_rows(conn, "SELECT * FROM components WHERE project_id = ? ORDER BY id", (selected,)),
         "deliverables": all_rows(conn, "SELECT * FROM deliverables WHERE project_id = ? ORDER BY due_date, id", (selected,)),
         "evidences": [serialize_evidence(r) for r in all_rows(conn, "SELECT * FROM evidence_files WHERE project_id = ? ORDER BY created_at DESC, id DESC", (selected,))],

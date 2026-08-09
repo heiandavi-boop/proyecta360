@@ -81,6 +81,7 @@ def calculate_metrics(
     risks: List[Dict[str, Any]],
     stories: List[Dict[str, Any]],
     dependencies: List[Dict[str, Any]],
+    budget_entries: List[Dict[str, Any]] | None = None,
     today: str | None = None,
 ) -> Dict[str, Any]:
     work_tasks = [t for t in tasks if t["task_type"] != "summary"]
@@ -90,11 +91,21 @@ def calculate_metrics(
     progress = round(sum(int(t["progress"] or 0) * _task_duration(t, current_date) for t in work_tasks) / total_weight, 1) if work_tasks else 0
     expected_progress = round(sum(_expected_task_progress(t, current_date) * _task_duration(t, current_date) for t in work_tasks) / total_weight, 1) if work_tasks else 0
     progress_variance_pp = round(progress - expected_progress, 1)
-    spent = round(sum(float(t["budget"] or 0) * int(t["progress"] or 0) / 100 for t in work_tasks), 2)
     budget_total = float(project["budget"] or 0)
-    planned_spent = round(budget_total * expected_progress / 100, 2)
+    budget_entries = budget_entries or []
+    cumulative_budget_entries = [entry for entry in budget_entries if str(entry.get("month", "")) <= current_day[:7]]
+    total_planned_budget = round(sum(float(entry.get("planned_amount") or 0) for entry in budget_entries), 2)
+    planned_spent = round(sum(float(entry.get("planned_amount") or 0) for entry in cumulative_budget_entries), 2)
+    spent = round(sum(float(entry.get("executed_amount") or 0) for entry in cumulative_budget_entries), 2)
+    budget_source = "plan_mensual" if budget_entries else "estimado_tareas"
+    if not budget_entries:
+        spent = round(sum(float(t["budget"] or 0) * int(t["progress"] or 0) / 100 for t in work_tasks), 2)
+        planned_spent = round(budget_total * expected_progress / 100, 2)
+        total_planned_budget = budget_total
     budget_executed_percent = round((spent / budget_total) * 100, 1) if budget_total else 0
     budget_expected_percent = round(expected_progress, 1) if budget_total else 0
+    if budget_entries and budget_total:
+        budget_expected_percent = round((planned_spent / budget_total) * 100, 1)
     budget_variance_pp = round(budget_executed_percent - budget_expected_percent, 1)
     schedule_score, at_risk_milestones = _schedule_score(work_tasks, current_day, progress_variance_pp)
     budget_score = _budget_score(budget_variance_pp)
@@ -130,6 +141,8 @@ def calculate_metrics(
         "budget": budget_total,
         "spent": spent,
         "planned_spent": planned_spent,
+        "total_planned_budget": total_planned_budget,
+        "budget_source": budget_source,
         "budget_executed_percent": budget_executed_percent,
         "budget_expected_percent": budget_expected_percent,
         "budget_variance_pp": budget_variance_pp,
@@ -162,6 +175,8 @@ def portfolio_item(project: Dict[str, Any], metrics: Dict[str, Any]) -> Dict[str
         "progress_variance_pp": metrics["progress_variance_pp"],
         "spent": metrics["spent"],
         "planned_spent": metrics["planned_spent"],
+        "total_planned_budget": metrics["total_planned_budget"],
+        "budget_source": metrics["budget_source"],
         "budget_executed_percent": metrics["budget_executed_percent"],
         "budget_expected_percent": metrics["budget_expected_percent"],
         "budget_variance_pp": metrics["budget_variance_pp"],

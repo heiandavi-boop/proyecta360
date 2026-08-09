@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from fastapi import APIRouter
 
 from proyecta360.schemas.api import (
+    BudgetEntryIn,
     ComponentIn,
     ConversationMessageIn,
     ConversationThreadIn,
@@ -29,6 +30,39 @@ def build_router(ctx) -> APIRouter:
     risk_level = ctx.risk_level
     serialize_risk = ctx.serialize_risk
     assert_component_in_project = ctx.assert_component_in_project
+    @router.post("/api/budget-entries")
+    def create_budget_entry(payload: BudgetEntryIn) -> Dict[str, Any]:
+        with db() as conn:
+            get_project_or_404(conn, payload.project_id)
+            cur = conn.execute(
+                """INSERT INTO budget_entries (project_id, month, category, planned_amount, executed_amount, notes)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                (payload.project_id, payload.month, payload.category, payload.planned_amount, payload.executed_amount, payload.notes),
+            )
+            add_history(
+                conn,
+                payload.project_id,
+                "Presupuesto",
+                f"{payload.category} {payload.month}",
+                "Registrado",
+                f"Planificado: {payload.planned_amount}. Ejecutado: {payload.executed_amount}.",
+            )
+            conn.commit()
+            return one(conn, "SELECT * FROM budget_entries WHERE id = ?", (cur.lastrowid,))
+
+
+    @router.delete("/api/budget-entries/{entry_id}")
+    def delete_budget_entry(entry_id: int) -> Dict[str, str]:
+        with db() as conn:
+            entry = one(conn, "SELECT * FROM budget_entries WHERE id = ?", (entry_id,))
+            if not entry:
+                raise HTTPException(status_code=404, detail="Registro presupuestal no encontrado")
+            conn.execute("DELETE FROM budget_entries WHERE id = ?", (entry_id,))
+            add_history(conn, int(entry["project_id"]), "Presupuesto", f"{entry['category']} {entry['month']}", "Eliminado", "Registro presupuestal eliminado.")
+            conn.commit()
+            return {"message": "Registro presupuestal eliminado"}
+
+
     @router.post("/api/risks")
     def create_risk(payload: RiskIn) -> Dict[str, Any]:
         with db() as conn:

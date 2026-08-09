@@ -148,6 +148,7 @@ def build_router(ctx) -> APIRouter:
     def validate_import_rows(rows: List[Dict[str, str]]) -> Dict[str, Any]:
         allowed_entities = {
             "project", "proyecto", "component", "components", "resource", "resources", "task", "tasks",
+            "budget", "budgets", "budget_entry", "budget_entries",
             "dependency", "dependencies", "sprint", "sprints", "story", "stories", "risk", "risks",
             "deliverable", "deliverables", "conversation_thread", "conversation_threads",
             "conversation_message", "conversation_messages",
@@ -178,6 +179,13 @@ def build_router(ctx) -> APIRouter:
                     add_csv_error(errors, row, "budget", "El presupuesto no puede ser negativo.")
             if entity in {"component", "components", "resource", "resources", "deliverable", "deliverables"} and not pick(row, "name", ""):
                 add_csv_error(errors, row, "name", "El nombre es obligatorio para esta entidad.")
+            if entity in {"budget", "budgets", "budget_entry", "budget_entries"}:
+                if not pick(row, "month", ""):
+                    add_csv_error(errors, row, "month", "El registro presupuestal requiere mes YYYY-MM.")
+                if pick(row, "month", "") and len(pick(row, "month", "")) != 7:
+                    add_csv_error(errors, row, "month", "El mes debe tener formato YYYY-MM.")
+                if as_float(pick(row, "planned_amount", 0), 0) < 0 or as_float(pick(row, "executed_amount", 0), 0) < 0:
+                    add_csv_error(errors, row, "amount", "Los valores presupuestales no pueden ser negativos.")
             if entity in {"task", "tasks"}:
                 if not pick(row, "title", pick(row, "name", "")):
                     add_csv_error(errors, row, "title", "La tarea debe incluir titulo.")
@@ -338,6 +346,23 @@ def build_router(ctx) -> APIRouter:
                 conn.execute("INSERT INTO resources (project_id, name, role, email, capacity) VALUES (?, ?, ?, ?, ?)", (project_id, name, pick(row, "role", ""), pick(row, "email", ""), as_int(pick(row, "capacity", 100), 100)))
                 bump(summary, "created", "resources")
             counts["resources"] += 1
+
+        for row in by_entity.get("budget", []) + by_entity.get("budgets", []) + by_entity.get("budget_entry", []) + by_entity.get("budget_entries", []):
+            month = pick(row, "month", "")
+            category = pick(row, "category", "General")
+            existing = one(conn, "SELECT * FROM budget_entries WHERE project_id = ? AND month = ? AND category = ?", (project_id, month, category))
+            if existing:
+                conn.execute(
+                    "UPDATE budget_entries SET planned_amount = ?, executed_amount = ?, notes = ? WHERE id = ?",
+                    (as_float(pick(row, "planned_amount", existing.get("planned_amount", 0))), as_float(pick(row, "executed_amount", existing.get("executed_amount", 0))), pick(row, "notes", existing.get("notes", "")), existing["id"]),
+                )
+                bump(summary, "updated", "budget_entries")
+            else:
+                conn.execute(
+                    "INSERT INTO budget_entries (project_id, month, category, planned_amount, executed_amount, notes) VALUES (?, ?, ?, ?, ?, ?)",
+                    (project_id, month, category, as_float(pick(row, "planned_amount", 0)), as_float(pick(row, "executed_amount", 0)), pick(row, "notes", "")),
+                )
+                bump(summary, "created", "budget_entries")
 
         task_rows = by_entity.get("task", []) + by_entity.get("tasks", [])
         pending_task_updates: List[tuple[int, Dict[str, str]]] = []
@@ -592,6 +617,7 @@ def build_router(ctx) -> APIRouter:
             "project": project,
             "components": all_rows(conn, "SELECT * FROM components WHERE project_id = ? ORDER BY id", (project_id,)),
             "resources": all_rows(conn, "SELECT * FROM resources WHERE project_id = ? ORDER BY id", (project_id,)),
+            "budget_entries": all_rows(conn, "SELECT * FROM budget_entries WHERE project_id = ? ORDER BY month, category, id", (project_id,)),
             "tasks": all_rows(conn, "SELECT * FROM tasks WHERE project_id = ? ORDER BY order_index, id", (project_id,)),
             "dependencies": all_rows(conn, "SELECT * FROM dependencies WHERE project_id = ? ORDER BY id", (project_id,)),
             "sprints": all_rows(conn, "SELECT * FROM sprints WHERE project_id = ? ORDER BY start_date, id", (project_id,)),
@@ -613,6 +639,7 @@ def build_router(ctx) -> APIRouter:
             "entity", "import_id", "name", "title", "description", "start_date", "end_date", "duration_days",
             "project_manager", "sponsor", "project_code", "requesting_area", "project_type", "priority",
             "responsible_team", "budget", "currency", "contractual_end_date", "methodology", "status",
+            "month", "category", "planned_amount", "executed_amount", "notes",
             "parameters_json", "problem_statement", "current_situation", "main_gap", "consequence_if_not_done",
             "general_objective", "specific_objectives", "objective_indicators", "scope_included",
             "scope_excluded", "expected_results", "success_criteria", "project_context",
@@ -675,6 +702,8 @@ def build_router(ctx) -> APIRouter:
             rows.append({"entity": "component", "import_id": component_refs[c["id"]], "name": c.get("name", ""), "methodology": c.get("methodology", ""), "owner": c.get("owner", ""), "objective": c.get("objective", ""), "progress": c.get("progress", "")})
         for r in data["resources"]:
             rows.append({"entity": "resource", "name": r.get("name", ""), "role": r.get("role", ""), "email": r.get("email", ""), "capacity": r.get("capacity", "")})
+        for entry in data["budget_entries"]:
+            rows.append({"entity": "budget", "month": entry.get("month", ""), "category": entry.get("category", ""), "planned_amount": entry.get("planned_amount", ""), "executed_amount": entry.get("executed_amount", ""), "notes": entry.get("notes", "")})
         for t in data["tasks"]:
             rows.append({
                 "entity": "task", "import_id": task_refs[t["id"]], "title": t.get("title", ""), "description": t.get("description", ""),

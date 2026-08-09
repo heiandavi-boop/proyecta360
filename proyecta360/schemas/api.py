@@ -328,6 +328,27 @@ class ResourceIn(BaseModel):
     capacity: int = Field(default=100, ge=0, le=100)
 
 
+class BudgetEntryIn(BaseModel):
+    project_id: int
+    month: str = Field(min_length=7, max_length=7)
+    category: str = Field(default="General", min_length=1, max_length=120)
+    planned_amount: float = Field(default=0, ge=0)
+    executed_amount: float = Field(default=0, ge=0)
+    notes: str = ""
+
+    @field_validator("month")
+    @classmethod
+    def validate_month(cls, value: str) -> str:
+        value = value.strip()
+        try:
+            year, month = value.split("-")
+            if len(year) != 4 or len(month) != 2 or not (1 <= int(month) <= 12):
+                raise ValueError
+        except Exception:
+            raise ValueError("El mes debe tener formato YYYY-MM")
+        return value
+
+
 class ComponentIn(BaseModel):
     project_id: int
     name: str = Field(min_length=1, max_length=160)

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import type {
   AiAnalysisIn,
+  BudgetEntryIn,
   ComponentIn,
   ConversationMessageIn,
   ConversationThreadIn,
@@ -22,6 +23,7 @@ import { TopBar } from "@/components/TopBar";
 import { asBootstrapPayload, type BootstrapPayload, type Story } from "@/domain/project";
 import type { AppView } from "@/domain/views";
 import { AiView } from "@/features/ai/AiView";
+import { BudgetView } from "@/features/budget/BudgetView";
 import { ConversationsView } from "@/features/conversations/ConversationsView";
 import { ProjectKpis } from "@/features/dashboard/DashboardView";
 import { LoginView } from "@/features/auth/LoginView";
@@ -223,6 +225,32 @@ export function App() {
     }
   }
 
+  async function createBudgetEntry(entry: BudgetEntryIn) {
+    setSaving(true);
+    setError("");
+    try {
+      await apiRequest("create_budget_entry_api_budget_entries_post", { body: entry });
+      await loadBootstrap(entry.project_id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create budget entry");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteBudgetEntry(entryId: number) {
+    setSaving(true);
+    setError("");
+    try {
+      await apiRequest("delete_budget_entry_api_budget_entries__entry_id__delete", { params: { entry_id: entryId } });
+      await loadBootstrap(data?.current_project.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to delete budget entry");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function createStory(story: StoryIn) {
     setSaving(true);
     setError("");
@@ -398,6 +426,7 @@ export function App() {
     }
     if (activeView === "scrum") return withKpis(<ScrumView busy={saving} canWrite={canWrite} data={payload} onCreateStory={createStory} onUpdateStory={updateStory} />);
     if (activeView === "resources") return withKpis(<ResourcesView busy={saving} canWrite={canWrite} data={payload} onCreateResource={createResource} />);
+    if (activeView === "budget") return withKpis(<BudgetView busy={saving} canWrite={canWrite} data={payload} onCreateBudgetEntry={createBudgetEntry} onDeleteBudgetEntry={deleteBudgetEntry} />);
     if (activeView === "risks") return withKpis(<RisksView busy={saving} canWrite={canWrite} data={payload} onCreateRisk={createRisk} />);
     if (activeView === "conversations") {
       return withKpis(

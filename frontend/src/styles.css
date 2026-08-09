@@ -700,6 +700,28 @@ textarea {
   letter-spacing: 0;
 }
 
+.budget-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.budget-summary-card {
+  display: grid;
+  gap: 8px;
+}
+
+.budget-summary-card span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.budget-summary-card strong {
+  color: var(--text);
+  font-size: 1.15rem;
+}
+
 .data-table th,
 .data-table td {
   border-bottom: 1px solid #edf2f7;

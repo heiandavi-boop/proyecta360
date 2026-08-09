@@ -1093,6 +1093,88 @@
         }
       }
     },
+    "/api/budget-entries": {
+      "post": {
+        "summary": "Create Budget Entry",
+        "operationId": "create_budget_entry_api_budget_entries_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BudgetEntryIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Create Budget Entry Api Budget Entries Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budget-entries/{entry_id}": {
+      "delete": {
+        "summary": "Delete Budget Entry",
+        "operationId": "delete_budget_entry_api_budget_entries__entry_id__delete",
+        "parameters": [
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Delete Budget Entry Api Budget Entries  Entry Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/risks": {
       "post": {
         "summary": "Create Risk",
@@ -2659,6 +2741,50 @@
           "file"
         ],
         "title": "Body_upload_evidence_api_evidences_upload_post"
+      },
+      "BudgetEntryIn": {
+        "properties": {
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "month": {
+            "type": "string",
+            "maxLength": 7,
+            "minLength": 7,
+            "title": "Month"
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Category",
+            "default": "General"
+          },
+          "planned_amount": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Planned Amount",
+            "default": 0
+          },
+          "executed_amount": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Executed Amount",
+            "default": 0
+          },
+          "notes": {
+            "type": "string",
+            "title": "Notes",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "month"
+        ],
+        "title": "BudgetEntryIn"
       },
       "ComponentIn": {
         "properties": {

@@ -22,6 +22,8 @@ export const API_ENDPOINTS = {
   logout_api_auth_logout_post: { method: "POST", path: "/api/auth/logout" },
   me_api_auth_me_get: { method: "GET", path: "/api/auth/me" },
   bootstrap_api_bootstrap_get: { method: "GET", path: "/api/bootstrap" },
+  create_budget_entry_api_budget_entries_post: { method: "POST", path: "/api/budget-entries" },
+  delete_budget_entry_api_budget_entries__entry_id__delete: { method: "DELETE", path: "/api/budget-entries/{entry_id}" },
   create_component_api_components_post: { method: "POST", path: "/api/components" },
   create_conversation_api_conversations_post: { method: "POST", path: "/api/conversations" },
   create_conversation_message_api_conversations__thread_id__messages_post: { method: "POST", path: "/api/conversations/{thread_id}/messages" },

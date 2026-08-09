@@ -1296,3 +1296,46 @@ def test_ai_analyze_endpoint_uses_internal_engine_v1_and_persists_pending_recomm
     recs = client.get(f"/api/projects/{project_id}/ai/recommendations", headers=headers).json()["recommendations"]
     assert any(r["status"] == "Pendiente" for r in recs)
 
+
+def test_budget_entries_feed_budget_metrics(client):
+    headers = auth_headers(client)
+    project = client.post(
+        "/api/projects",
+        headers=headers,
+        json={
+            "name": "Proyecto con presupuesto mensual",
+            "project_manager": "PM Financiero",
+            "sponsor": "Sponsor",
+            "start_date": "2026-08-01",
+            "contractual_end_date": "2026-12-31",
+            "budget": 1000,
+            "currency": "COP",
+        },
+    ).json()
+
+    created = client.post(
+        "/api/budget-entries",
+        headers=headers,
+        json={
+            "project_id": project["id"],
+            "month": "2026-08",
+            "category": "Equipo",
+            "planned_amount": 400,
+            "executed_amount": 500,
+            "notes": "Sobreejecucion inicial",
+        },
+    )
+
+    assert created.status_code == 200
+    payload = client.get(f"/api/bootstrap?project_id={project['id']}", headers=headers).json()
+    assert payload["budget_entries"][0]["category"] == "Equipo"
+    assert payload["metrics"]["budget_source"] == "plan_mensual"
+    assert payload["metrics"]["planned_spent"] == 400
+    assert payload["metrics"]["spent"] == 500
+    assert payload["metrics"]["budget_variance_pp"] == 10
+
+    deleted = client.delete(f"/api/budget-entries/{created.json()['id']}", headers=headers)
+    assert deleted.status_code == 200
+    payload = client.get(f"/api/bootstrap?project_id={project['id']}", headers=headers).json()
+    assert payload["budget_entries"] == []
+

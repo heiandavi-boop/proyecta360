@@ -31,6 +31,16 @@ CREATE TABLE IF NOT EXISTS resources (
     email TEXT DEFAULT '',
     capacity INTEGER DEFAULT 100
 );
+CREATE TABLE IF NOT EXISTS budget_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    month TEXT NOT NULL,
+    category TEXT DEFAULT 'General',
+    planned_amount REAL DEFAULT 0,
+    executed_amount REAL DEFAULT 0,
+    notes TEXT DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -266,6 +276,7 @@ CREATE TABLE IF NOT EXISTS audit_events (
 
 INDEX_SQL = [
     "CREATE INDEX IF NOT EXISTS idx_projects_organization ON projects(organization_id)",
+    "CREATE INDEX IF NOT EXISTS idx_budget_entries_project_month ON budget_entries(project_id, month, category)",
     "CREATE INDEX IF NOT EXISTS idx_tasks_project_order ON tasks(project_id, order_index, id)",
     "CREATE INDEX IF NOT EXISTS idx_dependencies_project_successor ON dependencies(project_id, successor_id)",
     "CREATE INDEX IF NOT EXISTS idx_risks_project_status ON risks(project_id, status, level)",
@@ -304,6 +315,33 @@ def ensure_schema_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE projects ADD COLUMN organization_id INTEGER DEFAULT 1")
     if "contractual_end_date" not in project_cols:
         conn.execute("ALTER TABLE projects ADD COLUMN contractual_end_date TEXT DEFAULT ''")
+
+    if database_backend(conn) == "postgresql":
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS budget_entries (
+                id SERIAL PRIMARY KEY,
+                project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                month TEXT NOT NULL,
+                category TEXT DEFAULT 'General',
+                planned_amount DOUBLE PRECISION DEFAULT 0,
+                executed_amount DOUBLE PRECISION DEFAULT 0,
+                notes TEXT DEFAULT '',
+                created_at TEXT DEFAULT (CURRENT_TIMESTAMP::text)
+            )"""
+        )
+    else:
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS budget_entries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                month TEXT NOT NULL,
+                category TEXT DEFAULT 'General',
+                planned_amount REAL DEFAULT 0,
+                executed_amount REAL DEFAULT 0,
+                notes TEXT DEFAULT '',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )"""
+        )
 
     task_cols = columns("tasks")
     task_alters = {

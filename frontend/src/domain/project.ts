@@ -28,6 +28,8 @@ export type ProjectMetrics = {
   budget: number;
   spent: number;
   planned_spent: number;
+  total_planned_budget: number;
+  budget_source: string;
   budget_executed_percent: number;
   budget_expected_percent: number;
   budget_variance_pp: number;
@@ -94,6 +96,16 @@ export type Resource = {
   role: string;
   email: string;
   capacity: number;
+};
+
+export type BudgetEntry = {
+  id: number;
+  project_id: number;
+  month: string;
+  category: string;
+  planned_amount: number;
+  executed_amount: number;
+  notes?: string;
 };
 
 export type Story = {
@@ -185,6 +197,7 @@ export type BootstrapPayload = {
   tasks: Task[];
   risks: Risk[];
   resources: Resource[];
+  budget_entries: BudgetEntry[];
   sprints: Sprint[];
   stories: Story[];
   components: Component[];
