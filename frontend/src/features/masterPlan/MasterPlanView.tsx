@@ -178,6 +178,7 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
   const [showForm, setShowForm] = useState(false);
   const [expandedTimeline, setExpandedTimeline] = useState(false);
   const [linkMode, setLinkMode] = useState(false);
+  const [planView, setPlanView] = useState<"executive" | "detail">("executive");
   const [showCriticalOnly, setShowCriticalOnly] = useState(false);
   const [linkSourceId, setLinkSourceId] = useState<number | null>(null);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
@@ -239,6 +240,26 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
   const projectStart = tasks.length ? isoDate(Math.min(...tasks.map((task) => dateMs(task.start_date)))) : data.current_project.start_date;
   const projectEnd = tasks.length ? isoDate(Math.max(...tasks.map((task) => dateMs(task.end_date || task.start_date)))) : data.current_project.end_date;
   const totalDuration = tasks.length ? daySpan(dateMs(projectStart), dateMs(projectEnd)) : 0;
+  const executiveTasks = useMemo(() => {
+    const summaryTasks = tasks.filter((task) => task.task_type === "summary" || !task.parent_id);
+    const source = summaryTasks.length ? summaryTasks : visible;
+    return source.slice(0, 8);
+  }, [tasks, visible]);
+  const executiveTimeline = useMemo(() => ganttGeometry(executiveTasks.length ? executiveTasks : visible), [executiveTasks, visible]);
+  const executiveTodayLeft = Math.max(0, Math.min(100, ((Date.now() - executiveTimeline.min) / executiveTimeline.total) * 100));
+  const nextMilestone = useMemo(() => {
+    const now = Date.now();
+    return [...tasks]
+      .filter((task) => task.task_type === "milestone")
+      .sort((left, right) => dateMs(left.end_date || left.start_date) - dateMs(right.end_date || right.start_date))
+      .find((task) => dateMs(task.end_date || task.start_date) >= now) || milestones[0] || null;
+  }, [milestones, tasks]);
+  const linkedStoryCount = data.stories.filter((story) => story.master_task_id).length;
+  const highRiskCount = data.risks.filter((risk) => {
+    const level = String(risk.level || "").toLowerCase();
+    const status = String(risk.status || "").toLowerCase();
+    return !status.includes("cerr") && (level.includes("alto") || level.includes("crit"));
+  }).length;
 
   useEffect(() => {
     setDraft((current) => ({ ...current, project_id: data.current_project.id, start_date: current.title ? current.start_date : data.current_project.start_date }));
@@ -266,6 +287,7 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
 
   function openTaskForm(taskType: "task" | "milestone") {
     setDraft((current) => ({ ...current, task_type: taskType, duration_days: taskType === "milestone" ? 0 : current.duration_days || 1, owner: current.owner || ownerOptions[0] || "" }));
+    setPlanView("detail");
     setShowForm(true);
   }
 
@@ -360,6 +382,98 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
     await onUpdateTask(task.id, { progress });
   }
 
+  if (planView === "executive") {
+    return (
+      <section className="master-plan-executive full-span">
+        <div className="gantt-workspace executive-plan-board">
+          <div className="gantt-titlebar executive-titlebar">
+            <div>
+              <h2>Plan Maestro / Cronograma</h2>
+              <span>Vista ejecutiva de {tasks.length} tareas, {milestones.length} hitos y {criticalTasks.length} puntos críticos.</span>
+            </div>
+            <div className="gantt-toolbar">
+              <div className="master-view-switch" aria-label="Cambiar vista del plan maestro">
+                <button className="active-tool" type="button">Vista ejecutiva</button>
+                <button onClick={() => setPlanView("detail")} type="button">Detalle operativo</button>
+              </div>
+              {canWrite ? <button className="primary-action compact-action" disabled={busy} onClick={() => openTaskForm("task")} type="button">+ Tarea</button> : null}
+            </div>
+          </div>
+
+          <div className="executive-plan-kpis">
+            <article><span>Avance real</span><b>{data.metrics.progress}%</b><small>Esperado {data.metrics.expected_progress}%</small></article>
+            <article><span>Ruta crítica</span><b>{criticalTasks.length}</b><small>Tareas que impactan fecha final</small></article>
+            <article><span>Riesgos altos</span><b>{highRiskCount}</b><small>Abiertos o críticos</small></article>
+            <article><span>Trabajo ágil</span><b>{linkedStoryCount}/{data.stories.length}</b><small>Ítems vinculados al plan</small></article>
+          </div>
+
+          <div className="executive-plan-grid">
+            <section className="executive-gantt-panel" aria-label="Cronograma ejecutivo">
+              <div className="executive-panel-head">
+                <div>
+                  <h3>Componentes principales</h3>
+                  <span>{projectStart} a {projectEnd}</span>
+                </div>
+                <button className="inline-action" onClick={() => setPlanView("detail")} type="button">Abrir detalle</button>
+              </div>
+              <div className="executive-timeline">
+                <div className="executive-months">
+                  {executiveTimeline.months.map((month) => <span key={month.label} style={{ left: `${month.left}%`, width: `${month.width}%` }}>{month.label}</span>)}
+                </div>
+                <div className="executive-today" style={{ left: `${executiveTodayLeft}%` }} />
+                {executiveTasks.map((task) => (
+                  <div className="executive-row" key={task.id}>
+                    <div className="executive-row-meta">
+                      <b title={task.title}>{task.title}</b>
+                      <span>{task.owner || "PMO"} · {task.progress}%</span>
+                    </div>
+                    <div className="executive-track">
+                      <i className={`executive-bar ${barClass(task)}`} style={{ left: `${taskLeft(task, executiveTimeline)}%`, width: `${task.task_type === "milestone" ? undefined : `${taskWidth(task, executiveTimeline)}%`}` }}>
+                        <em style={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }} />
+                      </i>
+                    </div>
+                  </div>
+                ))}
+                {!executiveTasks.length ? <p className="muted-copy">No hay tareas para mostrar.</p> : null}
+              </div>
+            </section>
+
+            <aside className="executive-alert-panel">
+              <section>
+                <h3>Decisiones y alertas</h3>
+                <article><span>Próximo hito</span><b>{nextMilestone?.title || "Sin hito próximo"}</b><small>{nextMilestone ? nextMilestone.end_date || nextMilestone.start_date : "No aplica"}</small></article>
+                <article><span>Desviación cronograma</span><b>{data.metrics.progress_variance_pp} pp</b><small>{data.metrics.delayed_tasks} tareas atrasadas</small></article>
+                <article><span>Salud del proyecto</span><b>{data.metrics.health}</b><small>PHS {data.metrics.phs}</small></article>
+              </section>
+              <section>
+                <h3>Acciones rápidas</h3>
+                <button className="inline-action" onClick={() => { setShowCriticalOnly(true); setPlanView("detail"); }} type="button">Ver ruta crítica</button>
+                <button className="inline-action" onClick={() => setPlanView("detail")} type="button">Gestionar dependencias</button>
+                {canWrite ? <button className="inline-action" disabled={busy} onClick={() => openTaskForm("milestone")} type="button">Crear hito</button> : null}
+              </section>
+            </aside>
+          </div>
+
+          <section className="executive-dependencies">
+            <div className="executive-panel-head">
+              <div>
+                <h3>Dependencias críticas</h3>
+                <span>Lectura resumida sin perder acceso al detalle operativo.</span>
+              </div>
+            </div>
+            <div className="dependency-summary-list">
+              {(criticalTasks.length ? criticalTasks : tasks.slice(0, 5)).slice(0, 5).map((task) => {
+                const taskIndex = tasks.findIndex((item) => item.id === task.id);
+                return <article key={task.id}><b>{allWbs[taskIndex] || taskIndex + 1}</b><span title={task.title}>{task.title}</span><small>{task.owner || "PMO"}</small><strong>{task.end_date || task.start_date}</strong></article>;
+              })}
+              {!tasks.length ? <p className="muted-copy">No hay dependencias para mostrar.</p> : null}
+            </div>
+          </section>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="master-gantt-layout full-span">
       <div className="gantt-workspace">
@@ -369,6 +483,7 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
             <span>{t("gantt.summary", { total: tasks.length, summaries: tasks.filter((task) => task.task_type === "summary").length, tasks: tasks.filter((task) => task.task_type !== "milestone").length, milestones: tasks.filter((task) => task.task_type === "milestone").length })}</span>
           </div>
           <div className="gantt-toolbar">
+            <button className="inline-action" onClick={() => setPlanView("executive")} type="button">Vista ejecutiva</button>
             {canWrite ? <button className="primary-action compact-action" disabled={busy} onClick={() => openTaskForm("task")} type="button">+ {t("gantt.addTask").replace("+", "").trim()}</button> : null}
             {canWrite ? <button className="inline-action" disabled={busy} onClick={() => openTaskForm("milestone")} type="button">+ {t("gantt.addMilestone").replace("+", "").trim()}</button> : null}
             {canWrite ? <button className={`inline-action${linkMode ? " active-tool" : ""}`} disabled={busy} onClick={() => { setLinkMode((value) => !value); setLinkSourceId(null); }} type="button">{t("gantt.link")}</button> : null}
@@ -435,7 +550,7 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
                         <b onDoubleClick={(event) => { event.stopPropagation(); if (canWrite) { setEditingTitleId(task.id); setEditingTitle(task.title); } }}>{task.title}</b>
                       )}
                       {storiesByTask[task.id]?.length ? <small className="scrum-link-badge" title={`Avance Scrum ${scrumProgress(storiesByTask[task.id])}%`}>Scrum: {storiesByTask[task.id].length} HU</small> : null}
-                      {isCritical(task) ? <small className="critical-path-badge" title="Esta tarea pertenece a la ruta critica porque impacta la fecha final del proyecto.">Crítica</small> : null}
+                      {isCritical(task) ? <small className="critical-path-badge" title="Esta tarea pertenece a la ruta crítica porque impacta la fecha final del proyecto.">Crítica</small> : null}
                     </span>
                     <span>{daySpan(start, end)} {t("gantt.daysUnit")}</span>
                     <span>{task.start_date}</span>
@@ -444,7 +559,7 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
                     <span title={task.owner || "PMO"}>{task.owner || "PMO"}</span>
                     <span className="gantt-progress-cell"><input className="grid-control" defaultValue={task.progress} disabled={busy || !canWrite || hasChildren} max="100" min="0" onBlur={(event) => canWrite && !hasChildren ? void onUpdateTask(task.id, { progress: Number(event.target.value) }) : undefined} title={hasChildren ? "El avance de una tarea resumen se calcula desde sus hijas." : undefined} type="number" /><b>{task.progress}%</b></span>
                     <span className="row-context">
-                      {(canWrite || storiesByTask[task.id]?.length) ? <button className="row-menu-trigger" disabled={busy} onClick={(event) => { event.stopPropagation(); setSelectedTaskId(task.id); setOpenMenuId((current) => current === task.id ? null : task.id); }} title="Mas opciones" type="button">...</button> : null}
+                      {(canWrite || storiesByTask[task.id]?.length) ? <button className="row-menu-trigger" disabled={busy} onClick={(event) => { event.stopPropagation(); setSelectedTaskId(task.id); setOpenMenuId((current) => current === task.id ? null : task.id); }} title="Más opciones" type="button">...</button> : null}
                       {openMenuId === task.id ? (
                         <span className={`row-menu${openMenuUp ? " open-up" : ""}`} onClick={(event) => event.stopPropagation()}>
                           {canWrite ? <button disabled={busy || index === 0 || outline >= 5} onClick={() => void runMenuAction("indent", task, index)} type="button">Indentar</button> : null}
@@ -481,7 +596,7 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
                     return (
                       <div className={`gantt-timeline-row ${taskVisualClass(task)}${linkMode ? " linkable-row" : ""}${linkSourceId === task.id ? " link-source-row" : ""}${selectedTaskId === task.id ? " selected-row" : ""}`} key={task.id} onClick={() => selectRow(task)}>
                         {dependency ? <i className="dependency-line" style={{ left: `${dependency.left}%`, width: `${dependency.width}%` }} /> : null}
-                        <i className={`gantt-bar ${barClass(task)}`} title={isCritical(task) ? "Esta tarea pertenece a la ruta critica porque impacta la fecha final del proyecto." : task.title} style={{ left: `${taskLeft(task, timeline)}%`, width: `${task.task_type === "milestone" ? undefined : `${taskWidth(task, timeline)}%`}` }}>
+                        <i className={`gantt-bar ${barClass(task)}`} title={isCritical(task) ? "Esta tarea pertenece a la ruta crítica porque impacta la fecha final del proyecto." : task.title} style={{ left: `${taskLeft(task, timeline)}%`, width: `${task.task_type === "milestone" ? undefined : `${taskWidth(task, timeline)}%`}` }}>
                           <em style={{ width: `${Math.max(0, Math.min(100, task.progress))}%` }} />
                         </i>
                       </div>
