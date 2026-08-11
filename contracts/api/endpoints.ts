@@ -3,6 +3,7 @@
 
 export const API_ENDPOINTS = {
   index__get: { method: "GET", path: "/" },
+  create_agile_cycle_api_agile_cycles_post: { method: "POST", path: "/api/agile-cycles" },
   get_analysis_run_api_ai_analysis_runs__run_id__get: { method: "GET", path: "/api/ai/analysis-runs/{run_id}" },
   ai_chat_api_ai_chat_post: { method: "POST", path: "/api/ai/chat" },
   ai_generate_plan_api_ai_generate_plan_post: { method: "POST", path: "/api/ai/generate-plan" },
@@ -65,5 +66,7 @@ export const API_ENDPOINTS = {
   indent_task_api_tasks__task_id__indent_post: { method: "POST", path: "/api/tasks/{task_id}/indent" },
   outdent_task_api_tasks__task_id__outdent_post: { method: "POST", path: "/api/tasks/{task_id}/outdent" },
   toggle_task_api_tasks__task_id__toggle_post: { method: "POST", path: "/api/tasks/{task_id}/toggle" },
+  create_work_item_api_work_items_post: { method: "POST", path: "/api/work-items" },
+  update_work_item_api_work_items__item_id__put: { method: "PUT", path: "/api/work-items/{item_id}" },
   favicon_favicon_ico_get: { method: "GET", path: "/favicon.ico" },
 } as const;

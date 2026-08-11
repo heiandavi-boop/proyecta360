@@ -915,6 +915,45 @@
         }
       }
     },
+    "/api/agile-cycles": {
+      "post": {
+        "summary": "Create Agile Cycle",
+        "operationId": "create_agile_cycle_api_agile_cycles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgileCycleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Create Agile Cycle Api Agile Cycles Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/stories": {
       "post": {
         "summary": "Create Story",
@@ -937,6 +976,45 @@
                 "schema": {
                   "type": "object",
                   "title": "Response Create Story Api Stories Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/work-items": {
+      "post": {
+        "summary": "Create Work Item",
+        "operationId": "create_work_item_api_work_items_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkItemIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Create Work Item Api Work Items Post"
                 }
               }
             }
@@ -987,6 +1065,56 @@
                 "schema": {
                   "type": "object",
                   "title": "Response Update Story Api Stories  Story Id  Put"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/work-items/{item_id}": {
+      "put": {
+        "summary": "Update Work Item",
+        "operationId": "update_work_item_api_work_items__item_id__put",
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkItemIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Update Work Item Api Work Items  Item Id  Put"
                 }
               }
             }
@@ -2425,6 +2553,71 @@
   },
   "components": {
     "schemas": {
+      "AgileCycleIn": {
+        "properties": {
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "goal": {
+            "type": "string",
+            "title": "Goal",
+            "default": ""
+          },
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "title": "Start Date"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "title": "End Date"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "Planeado"
+          },
+          "velocity": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Velocity",
+            "default": 0
+          },
+          "cycle_type": {
+            "type": "string",
+            "title": "Cycle Type",
+            "default": "Scrum"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Capacity",
+            "default": 0
+          },
+          "close_summary": {
+            "type": "string",
+            "title": "Close Summary",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "name",
+          "start_date",
+          "end_date"
+        ],
+        "title": "AgileCycleIn",
+        "description": "Neutral API contract for agile cycles. Legacy sprints map here."
+      },
       "AiAnalysisIn": {
         "properties": {
           "include_schedule": {
@@ -3842,6 +4035,22 @@
             "minimum": 0.0,
             "title": "Velocity",
             "default": 0
+          },
+          "cycle_type": {
+            "type": "string",
+            "title": "Cycle Type",
+            "default": "Scrum"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Capacity",
+            "default": 0
+          },
+          "close_summary": {
+            "type": "string",
+            "title": "Close Summary",
+            "default": ""
           }
         },
         "type": "object",
@@ -3881,11 +4090,43 @@
             ],
             "title": "Master Task Id"
           },
+          "component_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Component Id"
+          },
+          "deliverable_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliverable Id"
+          },
           "title": {
             "type": "string",
             "maxLength": 220,
             "minLength": 1,
             "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "default": ""
+          },
+          "work_type": {
+            "type": "string",
+            "title": "Work Type",
+            "default": "Historia"
           },
           "status": {
             "type": "string",
@@ -3907,6 +4148,34 @@
             "type": "string",
             "title": "Priority",
             "default": "Media"
+          },
+          "blocked_reason": {
+            "type": "string",
+            "title": "Blocked Reason",
+            "default": ""
+          },
+          "started_at": {
+            "type": "string",
+            "title": "Started At",
+            "default": ""
+          },
+          "completed_at": {
+            "type": "string",
+            "title": "Completed At",
+            "default": ""
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels"
+          },
+          "board_order": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Board Order",
+            "default": 0
           }
         },
         "type": "object",
@@ -4304,6 +4573,130 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WorkItemIn": {
+        "properties": {
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "sprint_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sprint Id"
+          },
+          "master_task_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Master Task Id"
+          },
+          "component_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Component Id"
+          },
+          "deliverable_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deliverable Id"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 220,
+            "minLength": 1,
+            "title": "Title"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "default": ""
+          },
+          "work_type": {
+            "type": "string",
+            "title": "Work Type",
+            "default": "Historia"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "Por hacer"
+          },
+          "points": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Points",
+            "default": 0
+          },
+          "assignee": {
+            "type": "string",
+            "title": "Assignee",
+            "default": ""
+          },
+          "priority": {
+            "type": "string",
+            "title": "Priority",
+            "default": "Media"
+          },
+          "blocked_reason": {
+            "type": "string",
+            "title": "Blocked Reason",
+            "default": ""
+          },
+          "started_at": {
+            "type": "string",
+            "title": "Started At",
+            "default": ""
+          },
+          "completed_at": {
+            "type": "string",
+            "title": "Completed At",
+            "default": ""
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels"
+          },
+          "board_order": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Board Order",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "title"
+        ],
+        "title": "WorkItemIn",
+        "description": "Neutral API contract for agile work items. Legacy stories map here."
       }
     }
   }

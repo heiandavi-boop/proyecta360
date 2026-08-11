@@ -70,6 +70,9 @@ export type Sprint = {
   end_date: string;
   status: string;
   velocity: number;
+  cycle_type?: string;
+  capacity?: number;
+  close_summary?: string;
 };
 
 export type Risk = {
@@ -113,11 +116,22 @@ export type Story = {
   project_id: number;
   sprint_id?: number;
   master_task_id?: number | null;
+  component_id?: number | null;
+  deliverable_id?: number | null;
   title: string;
+  description?: string;
+  work_type?: string;
   status: string;
   points: number;
   assignee: string;
   priority: string;
+  blocked_reason?: string;
+  started_at?: string;
+  completed_at?: string;
+  labels?: string[];
+  labels_json?: string;
+  board_order?: number;
+  created_at?: string;
 };
 
 export type Component = {
@@ -200,6 +214,8 @@ export type BootstrapPayload = {
   budget_entries: BudgetEntry[];
   sprints: Sprint[];
   stories: Story[];
+  agile_cycles?: Sprint[];
+  work_items?: Story[];
   components: Component[];
   deliverables: Deliverable[];
   evidences: Evidence[];

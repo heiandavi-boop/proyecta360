@@ -149,7 +149,8 @@ def build_router(ctx) -> APIRouter:
         allowed_entities = {
             "project", "proyecto", "component", "components", "resource", "resources", "task", "tasks",
             "budget", "budgets", "budget_entry", "budget_entries",
-            "dependency", "dependencies", "sprint", "sprints", "story", "stories", "risk", "risks",
+            "dependency", "dependencies", "sprint", "sprints", "cycle", "cycles", "agile_cycle", "agile_cycles",
+            "story", "stories", "work_item", "work_items", "agile_item", "agile_items", "risk", "risks",
             "deliverable", "deliverables", "conversation_thread", "conversation_threads",
             "conversation_message", "conversation_messages",
         }
@@ -214,15 +215,29 @@ def build_router(ctx) -> APIRouter:
                     value = as_int(pick(row, field, 1), 1)
                     if value < 1 or value > 5:
                         add_csv_error(errors, row, field, "Debe estar entre 1 y 5.")
-            if entity in {"sprint", "sprints"}:
+            if entity in {"sprint", "sprints", "cycle", "cycles", "agile_cycle", "agile_cycles"}:
                 if not pick(row, "name", ""):
-                    add_csv_error(errors, row, "name", "El sprint debe incluir nombre.")
+                    add_csv_error(errors, row, "name", "El ciclo debe incluir nombre.")
                 if not valid_iso_date(pick(row, "start_date", "")):
                     add_csv_error(errors, row, "start_date", "Fecha invalida. Usa YYYY-MM-DD.")
                 if not valid_iso_date(pick(row, "end_date", "")):
                     add_csv_error(errors, row, "end_date", "Fecha invalida. Usa YYYY-MM-DD.")
             import_id = str(row.get("import_id") or "").strip()
-            canonical = {"components": "component", "tasks": "task", "sprints": "sprint", "conversation_threads": "conversation_thread"}.get(entity, entity)
+            canonical = {
+                "components": "component",
+                "tasks": "task",
+                "sprints": "sprint",
+                "cycle": "sprint",
+                "cycles": "sprint",
+                "agile_cycle": "sprint",
+                "agile_cycles": "sprint",
+                "stories": "story",
+                "work_item": "story",
+                "work_items": "story",
+                "agile_item": "story",
+                "agile_items": "story",
+                "conversation_threads": "conversation_thread",
+            }.get(entity, entity)
             if import_id and canonical in import_ids:
                 if import_id in import_ids[canonical]:
                     add_csv_error(errors, row, "import_id", f"import_id duplicado para {canonical}.")
@@ -419,29 +434,66 @@ def build_router(ctx) -> APIRouter:
                     conn.execute("INSERT INTO dependencies (project_id, predecessor_id, successor_id, dependency_type, lag_days) VALUES (?, ?, ?, ?, ?)", (project_id, pred, succ, dependency_type, as_int(pick(row, "lag_days", 0))))
                     bump(summary, "created", "dependencies")
                 counts["dependencies"] += 1
-        for row in by_entity.get("sprint", []) + by_entity.get("sprints", []):
-            name = pick(row, "name", "Sprint importado")
+        cycle_rows = (
+            by_entity.get("sprint", []) + by_entity.get("sprints", [])
+            + by_entity.get("cycle", []) + by_entity.get("cycles", [])
+            + by_entity.get("agile_cycle", []) + by_entity.get("agile_cycles", [])
+        )
+        for row in cycle_rows:
+            name = pick(row, "name", "Ciclo importado")
             existing = first_by_normalized(all_rows(conn, "SELECT * FROM sprints WHERE project_id = ?", (project_id,)), "name", name)
             if existing:
-                conn.execute("UPDATE sprints SET goal = ?, start_date = ?, end_date = ?, status = ?, velocity = ? WHERE id = ?", (pick(row, "goal", existing.get("goal", "")), pick(row, "start_date", existing.get("start_date", start)), pick(row, "end_date", existing.get("end_date", start)), pick(row, "status", existing.get("status", "Planeado")), as_int(pick(row, "velocity", existing.get("velocity", 0))), existing["id"]))
+                conn.execute(
+                    "UPDATE sprints SET goal = ?, start_date = ?, end_date = ?, status = ?, velocity = ?, cycle_type = ?, capacity = ?, close_summary = ? WHERE id = ?",
+                    (
+                        pick(row, "goal", existing.get("goal", "")),
+                        pick(row, "start_date", existing.get("start_date", start)),
+                        pick(row, "end_date", existing.get("end_date", start)),
+                        pick(row, "status", existing.get("status", "Planeado")),
+                        as_int(pick(row, "velocity", existing.get("velocity", 0))),
+                        pick(row, "cycle_type", pick(row, "mode", existing.get("cycle_type", "Scrum"))),
+                        as_int(pick(row, "capacity", existing.get("capacity", 0))),
+                        pick(row, "close_summary", existing.get("close_summary", "")),
+                        existing["id"],
+                    ),
+                )
                 sprint_id = int(existing["id"])
                 bump(summary, "updated", "sprints")
             else:
-                cur = conn.execute("INSERT INTO sprints (project_id, name, goal, start_date, end_date, status, velocity) VALUES (?, ?, ?, ?, ?, ?, ?)", (project_id, name, pick(row, "goal", ""), pick(row, "start_date", start), pick(row, "end_date", start), pick(row, "status", "Planeado"), as_int(pick(row, "velocity", 0))))
+                cur = conn.execute(
+                    "INSERT INTO sprints (project_id, name, goal, start_date, end_date, status, velocity, cycle_type, capacity, close_summary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        project_id,
+                        name,
+                        pick(row, "goal", ""),
+                        pick(row, "start_date", start),
+                        pick(row, "end_date", start),
+                        pick(row, "status", "Planeado"),
+                        as_int(pick(row, "velocity", 0)),
+                        pick(row, "cycle_type", pick(row, "mode", "Scrum")),
+                        as_int(pick(row, "capacity", 0)),
+                        pick(row, "close_summary", ""),
+                    ),
+                )
                 sprint_id = int(cur.lastrowid)
                 bump(summary, "created", "sprints")
             if row.get("import_id"):
                 refs["sprint"][row["import_id"]] = sprint_id
             counts["sprints"] += 1
-        for row in by_entity.get("story", []) + by_entity.get("stories", []):
+        work_item_rows = (
+            by_entity.get("story", []) + by_entity.get("stories", [])
+            + by_entity.get("work_item", []) + by_entity.get("work_items", [])
+            + by_entity.get("agile_item", []) + by_entity.get("agile_items", [])
+        )
+        for row in work_item_rows:
             sprint_id = nullable_id(pick(row, "sprint_ref", pick(row, "sprint_id", "")), refs["sprint"])
             master_task_id = nullable_id(pick(row, "master_task_id", ""), refs["task"])
             master_task_wbs = str(pick(row, "master_task_wbs", "")).strip()
             if not master_task_id and master_task_wbs:
                 master_task_id = wbs_refs.get(master_task_wbs)
                 if not master_task_id:
-                    warnings.append(f"Historia '{pick(row, 'title', 'Historia importada')}' importada sin vinculo: WBS {master_task_wbs} no encontrado.")
-            title = pick(row, "title", "Historia importada")
+                    warnings.append(f"Item '{pick(row, 'title', 'Item importado')}' importado sin vinculo: WBS {master_task_wbs} no encontrado.")
+            title = pick(row, "title", "Item importado")
             stories = all_rows(conn, "SELECT * FROM stories WHERE project_id = ?", (project_id,))
             existing = next(
                 (
@@ -453,12 +505,47 @@ def build_router(ctx) -> APIRouter:
             )
             if existing:
                 conn.execute(
-                    "UPDATE stories SET sprint_id = ?, master_task_id = ?, status = ?, points = ?, assignee = ?, priority = ? WHERE id = ?",
-                    (sprint_id, master_task_id, pick(row, "status", existing.get("status", "Por hacer")), as_int(pick(row, "points", existing.get("points", 0))), pick(row, "assignee", existing.get("assignee", "")), pick(row, "priority", existing.get("priority", "Media")), existing["id"]),
+                    """UPDATE stories
+                       SET sprint_id = ?, master_task_id = ?, title = ?, description = ?, work_type = ?, status = ?,
+                           points = ?, assignee = ?, priority = ?, blocked_reason = ?, board_order = ?
+                       WHERE id = ?""",
+                    (
+                        sprint_id,
+                        master_task_id,
+                        title,
+                        pick(row, "description", existing.get("description", "")),
+                        pick(row, "work_type", pick(row, "type", existing.get("work_type", "Historia"))),
+                        pick(row, "status", existing.get("status", "Por hacer")),
+                        as_int(pick(row, "points", existing.get("points", 0))),
+                        pick(row, "assignee", existing.get("assignee", "")),
+                        pick(row, "priority", existing.get("priority", "Media")),
+                        pick(row, "blocked_reason", existing.get("blocked_reason", "")),
+                        as_int(pick(row, "board_order", existing.get("board_order", 0))),
+                        existing["id"],
+                    ),
                 )
                 bump(summary, "updated", "stories")
             else:
-                conn.execute("INSERT INTO stories (project_id, sprint_id, master_task_id, title, status, points, assignee, priority) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (project_id, sprint_id, master_task_id, title, pick(row, "status", "Por hacer"), as_int(pick(row, "points", 0)), pick(row, "assignee", ""), pick(row, "priority", "Media")))
+                conn.execute(
+                    """INSERT INTO stories
+                       (project_id, sprint_id, master_task_id, title, description, work_type, status, points,
+                        assignee, priority, blocked_reason, board_order)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        project_id,
+                        sprint_id,
+                        master_task_id,
+                        title,
+                        pick(row, "description", ""),
+                        pick(row, "work_type", pick(row, "type", "Historia")),
+                        pick(row, "status", "Por hacer"),
+                        as_int(pick(row, "points", 0)),
+                        pick(row, "assignee", ""),
+                        pick(row, "priority", "Media"),
+                        pick(row, "blocked_reason", ""),
+                        as_int(pick(row, "board_order", 0)),
+                    ),
+                )
                 bump(summary, "created", "stories")
             counts["stories"] += 1
         for row in by_entity.get("risk", []) + by_entity.get("risks", []):
@@ -650,8 +737,8 @@ def build_router(ctx) -> APIRouter:
             "parent_ref", "parent_id", "phase", "task_type", "progress", "owner", "story_points",
             "order_index", "outline_level", "is_expanded", "predecessor_ref", "predecessor_id",
             "successor_ref", "successor_id", "dependency_type", "lag_days", "role", "email", "capacity",
-            "objective", "goal", "velocity", "sprint_ref", "sprint_id", "points", "assignee", "priority",
-            "master_task_wbs",
+            "objective", "goal", "velocity", "cycle_type", "close_summary", "sprint_ref", "sprint_id", "points", "assignee", "priority",
+            "master_task_wbs", "work_type", "type", "blocked_reason", "board_order",
             "probability", "impact", "level", "response", "mitigation_plan", "contingency_plan",
             "deliverable_type", "due_date", "evidence_url", "thread_ref", "thread_id", "context_type",
             "context_id", "category", "created_by", "author", "message", "mentions", "message_type",
@@ -717,9 +804,9 @@ def build_router(ctx) -> APIRouter:
         for d in data["dependencies"]:
             rows.append({"entity": "dependency", "predecessor_ref": task_refs.get(d.get("predecessor_id"), ""), "successor_ref": task_refs.get(d.get("successor_id"), ""), "dependency_type": d.get("dependency_type", ""), "lag_days": d.get("lag_days", "")})
         for s in data["sprints"]:
-            rows.append({"entity": "sprint", "import_id": sprint_refs[s["id"]], "name": s.get("name", ""), "goal": s.get("goal", ""), "start_date": s.get("start_date", ""), "end_date": s.get("end_date", ""), "status": s.get("status", ""), "velocity": s.get("velocity", "")})
+            rows.append({"entity": "cycle", "import_id": sprint_refs[s["id"]], "name": s.get("name", ""), "goal": s.get("goal", ""), "start_date": s.get("start_date", ""), "end_date": s.get("end_date", ""), "status": s.get("status", ""), "velocity": s.get("velocity", ""), "cycle_type": s.get("cycle_type", ""), "capacity": s.get("capacity", ""), "close_summary": s.get("close_summary", "")})
         for story in data["stories"]:
-            rows.append({"entity": "story", "title": story.get("title", ""), "status": story.get("status", ""), "points": story.get("points", ""), "assignee": story.get("assignee", ""), "priority": story.get("priority", ""), "sprint_ref": sprint_refs.get(story.get("sprint_id"), ""), "master_task_wbs": task_wbs_by_id.get(story.get("master_task_id"), "")})
+            rows.append({"entity": "work_item", "title": story.get("title", ""), "description": story.get("description", ""), "work_type": story.get("work_type", ""), "type": story.get("work_type", ""), "status": story.get("status", ""), "points": story.get("points", ""), "assignee": story.get("assignee", ""), "priority": story.get("priority", ""), "blocked_reason": story.get("blocked_reason", ""), "board_order": story.get("board_order", ""), "sprint_ref": sprint_refs.get(story.get("sprint_id"), ""), "master_task_wbs": task_wbs_by_id.get(story.get("master_task_id"), "")})
         for r in data["risks"]:
             rows.append({"entity": "risk", "title": r.get("title", ""), "probability": r.get("probability", ""), "impact": r.get("impact", ""), "level": r.get("level", ""), "response": r.get("response", ""), "mitigation_plan": r.get("mitigation_plan", ""), "contingency_plan": r.get("contingency_plan", ""), "status": r.get("status", ""), "owner": r.get("owner", "")})
         for d in data["deliverables"]:

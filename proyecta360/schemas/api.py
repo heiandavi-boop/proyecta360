@@ -286,6 +286,9 @@ class SprintIn(BaseModel):
     end_date: date
     status: str = "Planeado"
     velocity: int = Field(default=0, ge=0)
+    cycle_type: str = "Scrum"
+    capacity: int = Field(default=0, ge=0)
+    close_summary: str = ""
 
     @model_validator(mode="after")
     def validate_dates(self) -> "SprintIn":
@@ -298,11 +301,28 @@ class StoryIn(BaseModel):
     project_id: int
     sprint_id: Optional[int] = None
     master_task_id: Optional[int] = None
+    component_id: Optional[int] = None
+    deliverable_id: Optional[int] = None
     title: str = Field(min_length=1, max_length=220)
+    description: str = ""
+    work_type: str = "Historia"
     status: str = "Por hacer"
     points: int = Field(default=0, ge=0)
     assignee: str = ""
     priority: str = "Media"
+    blocked_reason: str = ""
+    started_at: str = ""
+    completed_at: str = ""
+    labels: list[str] = Field(default_factory=list)
+    board_order: int = Field(default=0, ge=0)
+
+
+class AgileCycleIn(SprintIn):
+    """Neutral API contract for agile cycles. Legacy sprints map here."""
+
+
+class WorkItemIn(StoryIn):
+    """Neutral API contract for agile work items. Legacy stories map here."""
 
 
 class RiskIn(BaseModel):

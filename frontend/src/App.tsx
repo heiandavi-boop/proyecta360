@@ -14,7 +14,8 @@ import type {
   RiskIn,
   StoryIn,
   TaskIn,
-  TaskUpdate
+  TaskUpdate,
+  WorkItemIn
 } from "@contracts/types";
 
 import { apiRequest, clearToken, hasToken, logout } from "@/api/client";
@@ -22,6 +23,7 @@ import { ProjectShell } from "@/components/ProjectShell";
 import { TopBar } from "@/components/TopBar";
 import { asBootstrapPayload, type BootstrapPayload, type Story } from "@/domain/project";
 import type { AppView } from "@/domain/views";
+import { AgileWorkView } from "@/features/agile/AgileWorkView";
 import { AiView } from "@/features/ai/AiView";
 import { BudgetView } from "@/features/budget/BudgetView";
 import { ConversationsView } from "@/features/conversations/ConversationsView";
@@ -32,7 +34,6 @@ import { MasterPlanView } from "@/features/masterPlan/MasterPlanView";
 import { PortfolioView } from "@/features/portfolio/PortfolioView";
 import { ResourcesView } from "@/features/resources/ResourcesView";
 import { RisksView } from "@/features/risks/RisksView";
-import { ScrumView } from "@/features/scrum/ScrumView";
 import { useI18n } from "@/i18n/i18n";
 
 export function App() {
@@ -264,6 +265,19 @@ export function App() {
     }
   }
 
+  async function createWorkItem(item: WorkItemIn) {
+    setSaving(true);
+    setError("");
+    try {
+      await apiRequest("create_work_item_api_work_items_post", { body: item });
+      await loadBootstrap(item.project_id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create work item");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function updateStory(story: Story) {
     setSaving(true);
     setError("");
@@ -274,16 +288,59 @@ export function App() {
           project_id: story.project_id,
           sprint_id: story.sprint_id,
           master_task_id: story.master_task_id ?? null,
+          component_id: story.component_id ?? null,
+          deliverable_id: story.deliverable_id ?? null,
           title: story.title,
+          description: story.description || "",
+          work_type: story.work_type || "Historia",
           status: story.status,
           points: story.points,
           assignee: story.assignee,
           priority: story.priority,
+          blocked_reason: story.blocked_reason || "",
+          started_at: story.started_at || "",
+          completed_at: story.completed_at || "",
+          labels: story.labels || [],
+          board_order: story.board_order || 0,
         },
       });
       await loadBootstrap(story.project_id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to update story");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateWorkItem(item: Story) {
+    setSaving(true);
+    setError("");
+    try {
+      await apiRequest("update_work_item_api_work_items__item_id__put", {
+        params: { item_id: item.id },
+        body: {
+          project_id: item.project_id,
+          sprint_id: item.sprint_id ?? null,
+          master_task_id: item.master_task_id ?? null,
+          component_id: item.component_id ?? null,
+          deliverable_id: item.deliverable_id ?? null,
+          title: item.title,
+          description: item.description || "",
+          work_type: item.work_type || "Historia",
+          status: item.status,
+          points: item.points,
+          assignee: item.assignee,
+          priority: item.priority,
+          blocked_reason: item.blocked_reason || "",
+          started_at: item.started_at || "",
+          completed_at: item.completed_at || "",
+          labels: item.labels || [],
+          board_order: item.board_order || 0,
+        },
+      });
+      await loadBootstrap(item.project_id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update work item");
     } finally {
       setSaving(false);
     }
@@ -424,7 +481,7 @@ export function App() {
         />
       );
     }
-    if (activeView === "scrum") return withKpis(<ScrumView busy={saving} canWrite={canWrite} data={payload} onCreateStory={createStory} onUpdateStory={updateStory} />);
+    if (activeView === "scrum") return withKpis(<AgileWorkView busy={saving} canWrite={canWrite} data={payload} onCreateWorkItem={createWorkItem} onUpdateWorkItem={updateWorkItem} />);
     if (activeView === "resources") return withKpis(<ResourcesView busy={saving} canWrite={canWrite} data={payload} onCreateResource={createResource} />);
     if (activeView === "budget") return withKpis(<BudgetView busy={saving} canWrite={canWrite} data={payload} onCreateBudgetEntry={createBudgetEntry} onDeleteBudgetEntry={deleteBudgetEntry} />);
     if (activeView === "risks") return withKpis(<RisksView busy={saving} canWrite={canWrite} data={payload} onCreateRisk={createRisk} />);

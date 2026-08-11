@@ -1339,3 +1339,66 @@ def test_budget_entries_feed_budget_metrics(client):
     payload = client.get(f"/api/bootstrap?project_id={project['id']}", headers=headers).json()
     assert payload["budget_entries"] == []
 
+
+def test_agile_work_items_replace_scrum_without_breaking_legacy(client):
+    headers = auth_headers(client)
+    project_id = client.get("/api/bootstrap", headers=headers).json()["current_project"]["id"]
+
+    cycle = client.post(
+        "/api/agile-cycles",
+        headers=headers,
+        json={
+            "project_id": project_id,
+            "name": "Ciclo Trabajo Agil",
+            "goal": "Validar flujo neutral",
+            "start_date": "2026-08-01",
+            "end_date": "2026-08-15",
+            "status": "Activo",
+            "cycle_type": "Scrum",
+            "capacity": 13,
+        },
+    )
+    assert cycle.status_code == 200
+
+    neutral = client.post(
+        "/api/work-items",
+        headers=headers,
+        json={
+            "project_id": project_id,
+            "title": "Item neutral sin ciclo obligatorio",
+            "description": "Debe funcionar para Kanban o hibrido",
+            "work_type": "Tarea",
+            "status": "Bloqueado",
+            "points": 3,
+            "assignee": "Alejandra Trujillo",
+            "priority": "Alta",
+            "blocked_reason": "Pendiente definicion externa",
+        },
+    )
+    assert neutral.status_code == 200
+    body = neutral.json()
+    assert body["work_type"] == "Tarea"
+    assert body["sprint_id"] is None
+    assert body["blocked_reason"] == "Pendiente definicion externa"
+
+    legacy = client.post(
+        "/api/stories",
+        headers=headers,
+        json={
+            "project_id": project_id,
+            "sprint_id": cycle.json()["id"],
+            "title": "Historia legacy absorbida",
+            "status": "Por hacer",
+            "points": 5,
+            "assignee": "Alejandra Trujillo",
+            "priority": "Media",
+        },
+    )
+    assert legacy.status_code == 200
+    assert legacy.json()["work_type"] == "Historia"
+
+    payload = client.get(f"/api/bootstrap?project_id={project_id}", headers=headers).json()
+    assert any(item["title"] == "Item neutral sin ciclo obligatorio" for item in payload["work_items"])
+    assert any(item["title"] == "Historia legacy absorbida" for item in payload["stories"])
+    assert any(item["name"] == "Ciclo Trabajo Agil" for item in payload["agile_cycles"])
+

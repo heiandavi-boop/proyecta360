@@ -87,18 +87,31 @@ CREATE TABLE IF NOT EXISTS sprints (
     start_date TEXT NOT NULL,
     end_date TEXT NOT NULL,
     status TEXT DEFAULT 'Planeado',
-    velocity INTEGER DEFAULT 0
+    velocity INTEGER DEFAULT 0,
+    cycle_type TEXT DEFAULT 'Scrum',
+    capacity INTEGER DEFAULT 0,
+    close_summary TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS stories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     sprint_id INTEGER REFERENCES sprints(id) ON DELETE SET NULL,
     master_task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL,
+    component_id INTEGER REFERENCES components(id) ON DELETE SET NULL,
+    deliverable_id INTEGER REFERENCES deliverables(id) ON DELETE SET NULL,
     title TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    work_type TEXT DEFAULT 'Historia',
     status TEXT DEFAULT 'Por hacer',
     points INTEGER DEFAULT 0,
     assignee TEXT DEFAULT '',
-    priority TEXT DEFAULT 'Media'
+    priority TEXT DEFAULT 'Media',
+    blocked_reason TEXT DEFAULT '',
+    started_at TEXT DEFAULT '',
+    completed_at TEXT DEFAULT '',
+    labels_json TEXT DEFAULT '[]',
+    board_order INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS risks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -359,8 +372,32 @@ def ensure_schema_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE dependencies ADD COLUMN lag_days INTEGER DEFAULT 0")
 
     story_cols = columns("stories")
-    if "master_task_id" not in story_cols:
-        conn.execute("ALTER TABLE stories ADD COLUMN master_task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL")
+    story_alters = {
+        "master_task_id": "ALTER TABLE stories ADD COLUMN master_task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL",
+        "component_id": "ALTER TABLE stories ADD COLUMN component_id INTEGER REFERENCES components(id) ON DELETE SET NULL",
+        "deliverable_id": "ALTER TABLE stories ADD COLUMN deliverable_id INTEGER REFERENCES deliverables(id) ON DELETE SET NULL",
+        "description": "ALTER TABLE stories ADD COLUMN description TEXT DEFAULT ''",
+        "work_type": "ALTER TABLE stories ADD COLUMN work_type TEXT DEFAULT 'Historia'",
+        "blocked_reason": "ALTER TABLE stories ADD COLUMN blocked_reason TEXT DEFAULT ''",
+        "started_at": "ALTER TABLE stories ADD COLUMN started_at TEXT DEFAULT ''",
+        "completed_at": "ALTER TABLE stories ADD COLUMN completed_at TEXT DEFAULT ''",
+        "labels_json": "ALTER TABLE stories ADD COLUMN labels_json TEXT DEFAULT '[]'",
+        "board_order": "ALTER TABLE stories ADD COLUMN board_order INTEGER DEFAULT 0",
+        "created_at": "ALTER TABLE stories ADD COLUMN created_at TEXT DEFAULT ''",
+    }
+    for name, ddl in story_alters.items():
+        if name not in story_cols:
+            conn.execute(ddl)
+
+    sprint_cols = columns("sprints")
+    sprint_alters = {
+        "cycle_type": "ALTER TABLE sprints ADD COLUMN cycle_type TEXT DEFAULT 'Scrum'",
+        "capacity": "ALTER TABLE sprints ADD COLUMN capacity INTEGER DEFAULT 0",
+        "close_summary": "ALTER TABLE sprints ADD COLUMN close_summary TEXT DEFAULT ''",
+    }
+    for name, ddl in sprint_alters.items():
+        if name not in sprint_cols:
+            conn.execute(ddl)
 
     risk_cols = columns("risks")
     if "mitigation_plan" not in risk_cols:

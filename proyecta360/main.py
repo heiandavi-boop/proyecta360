@@ -148,14 +148,18 @@ def bootstrap_payload(conn: sqlite3.Connection, project_id: Optional[int] = None
             and task["id"] in critical_ids
             and int(task["progress"] or 0) < 100
         )
+    cycles = all_rows(conn, "SELECT * FROM sprints WHERE project_id = ? ORDER BY start_date", (selected,))
+    work_items = all_rows(conn, "SELECT * FROM stories WHERE project_id = ? ORDER BY board_order, id", (selected,))
     return {
         "projects": [serialize_project(p) for p in projects],
         "portfolio": portfolio_summary(conn),
         "current_project": serialize_project(current),
         "tasks": tasks,
         "dependencies": dependencies,
-        "sprints": all_rows(conn, "SELECT * FROM sprints WHERE project_id = ? ORDER BY start_date", (selected,)),
-        "stories": all_rows(conn, "SELECT * FROM stories WHERE project_id = ? ORDER BY id", (selected,)),
+        "sprints": cycles,
+        "stories": work_items,
+        "agile_cycles": cycles,
+        "work_items": work_items,
         "risks": [serialize_risk(r) for r in all_rows(conn, "SELECT * FROM risks WHERE project_id = ? ORDER BY id", (selected,))],
         "resources": all_rows(conn, "SELECT * FROM resources WHERE project_id = ? ORDER BY id", (selected,)),
         "budget_entries": all_rows(conn, "SELECT * FROM budget_entries WHERE project_id = ? ORDER BY month, category, id", (selected,)),

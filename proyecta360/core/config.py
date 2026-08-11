@@ -15,9 +15,10 @@ MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "25"))
 MAX_UPLOAD_BYTES = int(os.getenv("PROYECTA360_MAX_UPLOAD_BYTES", str(MAX_UPLOAD_MB * 1024 * 1024)))
 
 DEFAULT_PARAMETERS: Dict[str, Any] = {
-    "control_model": "PMP para gobierno y control + Scrum para desarrollo",
+    "control_model": "PMP para gobierno y control + Trabajo Agil para ejecucion",
     "execution_methodologies": ["Scrum", "Kanban", "Tradicional", "Híbrida", "XP", "Lean"],
-    "selected_execution_methodology": "Scrum",
+    "selected_execution_methodology": "Hibrida",
+    "agile_mode": "Hibrido",
     "calendar": {
         "working_days": ["Lunes", "Martes", "Mi?rcoles", "Jueves", "Viernes"],
         "workday_start": "08:00",
@@ -26,8 +27,9 @@ DEFAULT_PARAMETERS: Dict[str, Any] = {
     },
     "phases": ["Inicio", "Planeación", "Ejecución", "Pruebas", "Cierre"],
     "task_statuses": ["Pendiente", "En progreso", "Bloqueada", "Completada"],
-    "story_statuses": ["Por hacer", "En progreso", "Hecho"],
+    "story_statuses": ["Lista", "Por hacer", "En progreso", "En revision", "Bloqueado", "Hecho"],
     "sprint": {"duration_days": 14, "story_point_scale": [1, 2, 3, 5, 8, 13]},
+    "agile": {"cycle_duration_days": 14, "work_item_types": ["Historia", "Tarea", "Bug", "Mejora", "Solicitud", "Entregable", "Otro"]},
     "risk_matrix": {
         "probability_scale": [1, 2, 3, 4, 5],
         "impact_scale": [1, 2, 3, 4, 5],

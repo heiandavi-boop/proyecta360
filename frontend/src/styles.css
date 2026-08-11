@@ -2020,6 +2020,97 @@ textarea {
   margin-bottom: 14px;
 }
 
+.agile-workspace {
+  display: grid;
+  gap: 14px;
+}
+
+.agile-heading {
+  margin-bottom: 0;
+}
+
+.agile-heading-actions {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.agile-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 10px;
+}
+
+.agile-tabs button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-weight: 900;
+  padding: 8px 11px;
+}
+
+.agile-tabs button.active {
+  border-color: var(--blue);
+  background: #eaf2ff;
+  color: var(--blue);
+}
+
+.agile-item-form {
+  margin-bottom: 0;
+}
+
+.agile-overview {
+  grid-template-columns: repeat(4, minmax(120px, 170px)) minmax(320px, 1fr);
+  margin-bottom: 0;
+}
+
+.agile-board {
+  align-items: stretch;
+}
+
+.agile-work-card.blocked {
+  border-left-color: var(--red);
+}
+
+.agile-card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.agile-blocked-reason {
+  border-radius: 6px;
+  background: #fff1f2;
+  color: #be123c !important;
+  line-height: 1.35;
+  padding: 5px 7px;
+}
+
+.agile-settings-grid,
+.agile-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.agile-cycle-filter {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.agile-cycle-filter label {
+  width: min(360px, 100%);
+}
+
+.agile-list-table {
+  min-width: 980px;
+}
+
 .scrum-metric,
 .burndown-card {
   border: 1px solid var(--line);
@@ -2719,6 +2810,13 @@ textarea {
   }
 
   .scrum-overview {
+    grid-template-columns: 1fr;
+  }
+
+  .agile-heading-actions,
+  .agile-overview,
+  .agile-settings-grid,
+  .agile-metrics-grid {
     grid-template-columns: 1fr;
   }
 
