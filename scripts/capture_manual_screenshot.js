@@ -3,7 +3,7 @@ const http = require("http");
 const { spawn } = require("child_process");
 const path = require("path");
 
-const [, , viewLabel = "Trabajo Ágil", outPath = "docs/manual/assets/03-scrum.png"] = process.argv;
+const [, , viewLabel = "Trabajo \u00c1gil", outPath = "docs/manual/assets/03-scrum.png"] = process.argv;
 const chrome = "C:/Program Files/Google/Chrome/Application/chrome.exe";
 const userDataDir = path.join(process.cwd(), ".tmp-chrome-manual-shot");
 const out = path.resolve(process.cwd(), outPath);

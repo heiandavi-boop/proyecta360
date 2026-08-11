@@ -38,10 +38,10 @@ def ensure_mvp_data(conn: sqlite3.Connection, add_history: HistoryFn) -> None:
                    WHERE id = ?""",
                 (
                     "Proyecta360 LAC",
-                    "Plataforma para la gestion integral de proyectos financiados y productos de conocimiento en investigacion, innovacion y cooperacion internacional.",
+                    "Plataforma para la gesti\u00f3n integral de proyectos financiados y productos de conocimiento en investigaci\u00f3n, innovaci\u00f3n y cooperaci\u00f3n internacional.",
                     "Universidad / Cooperante LAC",
                     "Alejandra Trujillo",
-                    "Hibrida por componentes",
+                    "H\u00edbrida por componentes",
                     project_id,
                 ),
             )
@@ -117,12 +117,12 @@ def seed_database(conn: sqlite3.Connection, add_history: HistoryFn, risk_level: 
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             "Proyecta360 LAC",
-            "Plataforma para la gestion integral de proyectos financiados y productos de conocimiento en investigacion, innovacion y cooperacion internacional.",
+            "Plataforma para la gesti\u00f3n integral de proyectos financiados y productos de conocimiento en investigaci\u00f3n, innovaci\u00f3n y cooperaci\u00f3n internacional.",
             "Universidad / Cooperante LAC",
             "Alejandra Trujillo",
             start.isoformat(),
             end.isoformat(),
-            "Hibrida por componentes",
+            "H\u00edbrida por componentes",
             "En ejecucion",
             125000000,
             "COP",
@@ -163,7 +163,7 @@ def seed_database(conn: sqlite3.Connection, add_history: HistoryFn, risk_level: 
         ("Plan de tiempo / cronograma", "Planeacion", "task", start + timedelta(days=20), start + timedelta(days=33), 80, "Maria Gonzalez", "En progreso", 0, 7000000),
         ("Plan de costos", "Planeacion", "task", start + timedelta(days=25), start + timedelta(days=37), 60, "Jorge Ramirez", "En progreso", 0, 4500000),
         ("Aprobacion del plan", "Planeacion", "milestone", start + timedelta(days=39), start + timedelta(days=39), 0, "Comite de Direccion", "Pendiente", 0, 0),
-        ("Sprint 1 - Configuracion inicial", "Ejecucion", "task", start + timedelta(days=42), start + timedelta(days=55), 100, "Equipo Dev", "Completada", 21, 14500000),
+        ("Sprint 1 - Configuraci\u00f3n inicial", "Ejecucion", "task", start + timedelta(days=42), start + timedelta(days=55), 100, "Equipo Dev", "Completada", 21, 14500000),
         ("Sprint 2 - Modulo de Clientes", "Ejecucion", "task", start + timedelta(days=56), start + timedelta(days=69), 65, "Equipo Dev", "En progreso", 34, 16000000),
         ("Sprint 3 - Integraciones", "Ejecucion", "task", start + timedelta(days=70), start + timedelta(days=83), 20, "Equipo Dev", "En progreso", 34, 17000000),
         ("Sprint 4 - Reportes", "Ejecucion", "task", start + timedelta(days=84), start + timedelta(days=97), 0, "Equipo Dev", "Pendiente", 28, 12000000),
@@ -195,7 +195,7 @@ def seed_database(conn: sqlite3.Connection, add_history: HistoryFn, risk_level: 
     conn.executemany("INSERT INTO dependencies (project_id, predecessor_id, successor_id, dependency_type) VALUES (?, ?, ?, 'FS')", [(project_id, task_ids[a - 1], task_ids[b - 1]) for a, b in dep_pairs])
 
     sprints = [
-        ("Sprint 1 - Configuracion inicial", "Preparar arquitectura base y pipeline", start + timedelta(days=42), start + timedelta(days=55), "Cerrado", 28),
+        ("Sprint 1 - Configuraci\u00f3n inicial", "Preparar arquitectura base y pipeline", start + timedelta(days=42), start + timedelta(days=55), "Cerrado", 28),
         ("Sprint 2 - Modulo de Clientes", "Entregar gestion base de clientes", start + timedelta(days=56), start + timedelta(days=69), "En curso", 34),
         ("Sprint 3 - Integraciones", "Conectar APIs y servicios externos", start + timedelta(days=70), start + timedelta(days=83), "Planeado", 34),
     ]
@@ -210,8 +210,8 @@ def seed_database(conn: sqlite3.Connection, add_history: HistoryFn, risk_level: 
         (sprint_ids[1], "US-24 Validar datos de cliente", "Por hacer", 5, "QA Team", "Media"),
         (sprint_ids[1], "US-25 Carga masiva de clientes", "Por hacer", 8, "Equipo Dev", "Alta"),
         (sprint_ids[1], "US-26 Exportar reportes", "Por hacer", 5, "Equipo Dev", "Media"),
-        (sprint_ids[0], "US-17 Configuracion inicial", "Hecho", 3, "DevOps", "Alta"),
-        (sprint_ids[0], "US-18 Modelos de datos", "Hecho", 8, "Maria Gonzalez", "Alta"),
+        (sprint_ids[0], "US-17 Configuraci\u00f3n inicial", "Hecho", 3, "DevOps", "Alta"),
+        (sprint_ids[0], "US-18 Modelos de datos", "Hecho", 8, "Mar\u00eda Gonz\u00e1lez", "Alta"),
         (sprint_ids[0], "US-19 Servicios API", "Hecho", 8, "Equipo Dev", "Alta"),
     ]
     conn.executemany("INSERT INTO stories (project_id, sprint_id, title, status, points, assignee, priority) VALUES (?, ?, ?, ?, ?, ?, ?)", [(project_id, *s) for s in stories])

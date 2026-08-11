@@ -551,7 +551,7 @@
   "agile.modeHelp.Scrum": "Uses required cycles, cycle goals, burndown, and point commitment.",
   "agile.modeHelp.Kanban": "Uses continuous flow without requiring cycles, focusing on WIP, blockers, and completion.",
   "agile.modeHelp.Scrumban": "Combines a work list, optional cycles, and flow limits.",
-  "agile.modeHelp.H?brido": "Connects agile execution with Master Plan, PMO, risks, budget, and AI.",
+  "agile.modeHelp.H\u00edbrido": "Connects agile execution with Master Plan, PMO, risks, budget, and AI.",
   "workItem.new": "New item",
   "workItem.title": "Title",
   "workItem.type": "Type",

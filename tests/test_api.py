@@ -1349,7 +1349,7 @@ def test_agile_work_items_replace_scrum_without_breaking_legacy(client):
         headers=headers,
         json={
             "project_id": project_id,
-            "name": "Ciclo Trabajo Agil",
+            "name": "Ciclo Trabajo \u00c1gil",
             "goal": "Validar flujo neutral",
             "start_date": "2026-08-01",
             "end_date": "2026-08-15",
@@ -1400,5 +1400,5 @@ def test_agile_work_items_replace_scrum_without_breaking_legacy(client):
     payload = client.get(f"/api/bootstrap?project_id={project_id}", headers=headers).json()
     assert any(item["title"] == "Item neutral sin ciclo obligatorio" for item in payload["work_items"])
     assert any(item["title"] == "Historia legacy absorbida" for item in payload["stories"])
-    assert any(item["name"] == "Ciclo Trabajo Agil" for item in payload["agile_cycles"])
+    assert any(item["name"] == "Ciclo Trabajo \u00c1gil" for item in payload["agile_cycles"])
 

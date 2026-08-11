@@ -76,7 +76,7 @@ def build_router(ctx) -> APIRouter:
         )
         conn.commit()
         cycle = one(conn, "SELECT * FROM sprints WHERE id = ?", (cur.lastrowid,))
-        add_history(conn, payload.project_id, "Trabajo Agil", payload.name, "Ciclo creado", payload.goal)
+        add_history(conn, payload.project_id, "Trabajo \u00c1gil", payload.name, "Ciclo creado", payload.goal)
         return cycle
 
     def create_work_item_record(conn, payload: StoryIn) -> Dict[str, Any]:
@@ -110,7 +110,7 @@ def build_router(ctx) -> APIRouter:
         )
         conn.commit()
         item = one(conn, "SELECT * FROM stories WHERE id = ?", (cur.lastrowid,))
-        add_history(conn, payload.project_id, "Trabajo Agil", payload.title, "Item creado", payload.work_type)
+        add_history(conn, payload.project_id, "Trabajo \u00c1gil", payload.title, "\u00cdtem creado", payload.work_type)
         return item
 
     def scrum_summary(conn, project_id: int, task_id: int) -> Dict[str, Any]:
@@ -214,7 +214,7 @@ def build_router(ctx) -> APIRouter:
             )
             conn.commit()
             item = one(conn, "SELECT * FROM stories WHERE id = ?", (story_id,))
-            add_history(conn, payload.project_id, "Trabajo Agil", payload.title, "Item actualizado", payload.status)
+            add_history(conn, payload.project_id, "Trabajo \u00c1gil", payload.title, "\u00cdtem actualizado", payload.status)
             return item
 
     @router.put("/api/work-items/{item_id}")

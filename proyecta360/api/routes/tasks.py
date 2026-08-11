@@ -38,7 +38,7 @@ def build_router(ctx) -> APIRouter:
             if payload.parent_id:
                 parent = assert_task_in_project(conn, payload.parent_id, payload.project_id, "La tarea padre")
                 if parent["id"] == payload.predecessor_id:
-                    raise HTTPException(status_code=400, detail="La tarea padre no puede ser tambi?n dependencia inicial")
+                    raise HTTPException(status_code=400, detail="La tarea padre no puede ser tambi\u00e9n dependencia inicial")
             if payload.predecessor_id:
                 assert_task_in_project(conn, payload.predecessor_id, payload.project_id, "La tarea predecesora")
             if payload.component_id:
@@ -77,7 +77,7 @@ def build_router(ctx) -> APIRouter:
                 assert_component_in_project(conn, data["component_id"], task["project_id"])
             if data.get("parent_id"):
                 if int(data["parent_id"]) == task_id:
-                    raise HTTPException(status_code=400, detail="Una tarea no puede ser padre de s? misma")
+                    raise HTTPException(status_code=400, detail="Una tarea no puede ser padre de s\u00ed misma")
                 assert_task_in_project(conn, int(data["parent_id"]), task["project_id"], "La tarea padre")
             next_type = data.get("task_type", task["task_type"])
             if has_children(conn, task_id):
@@ -126,7 +126,7 @@ def build_router(ctx) -> APIRouter:
             task = get_task_or_404(conn, task_id)
             previous = one(conn, "SELECT * FROM tasks WHERE project_id = ? AND order_index < ? ORDER BY order_index DESC, id DESC LIMIT 1", (task["project_id"], task["order_index"]))
             if not previous:
-                raise HTTPException(status_code=400, detail="No hay tarea anterior para aplicar sangr?a")
+                raise HTTPException(status_code=400, detail="No hay tarea anterior para aplicar sangr\u00eda")
             conn.execute("UPDATE tasks SET parent_id = ? WHERE id = ?", (previous["id"], task_id))
             conn.execute("UPDATE tasks SET task_type = 'summary' WHERE id = ?", (previous["id"],))
             refresh_outline_levels(conn, task["project_id"])
@@ -140,7 +140,7 @@ def build_router(ctx) -> APIRouter:
         with db() as conn:
             task = get_task_or_404(conn, task_id)
             if not task.get("parent_id"):
-                raise HTTPException(status_code=400, detail="La tarea ya est? en el nivel principal")
+                raise HTTPException(status_code=400, detail="La tarea ya est\u00e1 en el nivel principal")
             parent = get_task_or_404(conn, int(task["parent_id"]))
             conn.execute("UPDATE tasks SET parent_id = ? WHERE id = ?", (parent.get("parent_id"), task_id))
             refresh_outline_levels(conn, task["project_id"])

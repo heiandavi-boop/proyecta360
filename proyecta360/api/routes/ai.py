@@ -1085,12 +1085,12 @@ def build_router(ctx) -> APIRouter:
     Avance general: {m['progress']}%
     Presupuesto ejecutado estimado: {m['spent']:,.0f} de {m['budget']:,.0f} {p['currency']}
     Riesgos abiertos: {m['open_risks']} | Riesgos altos: {m['high_risks']}
-    Ruta cr?tica: {m['critical_path_tasks']} tareas abiertas con dependencias.
+    Ruta cr\u00edtica: {m['critical_path_tasks']} tareas abiertas con dependencias.
     
     Foco recomendado:
-    1. Revisar tareas atrasadas y dependencias cr?ticas.
+    1. Revisar tareas atrasadas y dependencias cr\u00edticas.
     2. Confirmar capacidad de recursos de QA y Desarrollo.
-    3. Mantener gobierno PMP para hitos y cambios de alcance, permitiendo ejecuci?n ?gil en sprints.
+    3. Mantener gobierno PMP para hitos y cambios de alcance, permitiendo ejecuci\u00f3n \u00e1gil en ciclos.
     """.strip()
             if risks:
                 report += "\n\nPrincipales riesgos:\n" + "\n".join([f"- {r['title']} ({r['level']})" for r in risks])
@@ -1112,23 +1112,24 @@ def build_router(ctx) -> APIRouter:
         milestones = intel.get("compromised_milestones", [])[:6]
         if any(w in q for w in ["atras", "venc", "demora", "retras"]):
             if not delayed:
-                return "No identifico actividades vencidas abiertas frente a la fecha actual. Mant?n el seguimiento semanal y registra evidencias de avance."
+                return "No identifico actividades vencidas abiertas frente a la fecha actual. Mant\u00e9n el seguimiento semanal y registra evidencias de avance."
             return "Actividades atrasadas detectadas:\n" + "\n".join([f"- {t['title']} | Responsable: {t['owner'] or 'sin asignar'} | Fin: {t['end_date']} | Avance: {t['progress']}%" for t in delayed])
         if "riesg" in q:
             if not high:
-                return f"El proyecto tiene {m['open_risks']} riesgos abiertos, pero no hay riesgos altos abiertos. Recomendaci?n: mantener actualizaci?n de probabilidad, impacto y respuesta."
+                return f"El proyecto tiene {m['open_risks']} riesgos abiertos, pero no hay riesgos altos abiertos. Recomendaci\u00f3n: mantener actualizaci\u00f3n de probabilidad, impacto y respuesta."
             return "Riesgos altos abiertos:\n" + "\n".join([f"- {r['title']} | Responsable: {r['owner'] or 'sin asignar'} | Respuesta: {r['response'] or 'pendiente'}" for r in high])
         if "hito" in q:
             if not milestones:
-                return "No hay hitos comprometidos seg?n el estado actual. Revisa pr?ximos hitos y carga evidencias de cumplimiento."
+                return "No hay hitos comprometidos seg\u00fan el estado actual. Revisa pr\u00f3ximos hitos y carga evidencias de cumplimiento."
             return "Hitos comprometidos:\n" + "\n".join([f"- {h['title']} | Fecha: {h['end_date']} | Avance: {h['progress']}%" for h in milestones])
         if "presupuesto" in q or "costo" in q or "fond" in q:
             return f"Presupuesto total: {m['budget']:,.0f} {p['currency']}. Ejecutado estimado: {m['spent']:,.0f}. Saldo estimado: {m['remaining_budget']:,.0f}."
         if "entreg" in q or "producto" in q or "evidencia" in q:
             deliverables = all_rows(conn, "SELECT name, deliverable_type, status, due_date, evidence_url FROM deliverables WHERE project_id = ? ORDER BY due_date LIMIT 8", (project_id,))
             evidences = one(conn, "SELECT COUNT(*) AS total FROM evidence_files WHERE project_id = ?", (project_id,))["total"]
-            return f"El proyecto tiene {len(deliverables)} entregables/productos visibles y {evidences} evidencias cargadas.\n" + "\n".join([f"- {d['name']} | {d['deliverable_type']} | {d['status']} | Evidencia: {'s?' if d['evidence_url'] else 'no'}" for d in deliverables])
-        return f"Estado del proyecto {p['name']}: salud {m['health']}, avance {m['progress']}%, {m['open_risks']} riesgos abiertos ({m['high_risks']} altos), {m['delayed_tasks']} actividades atrasadas y {m['critical_path_tasks']} tareas en ruta cr?tica. Recomendaciones: " + "; ".join(intel.get("recommendations", []))
+            yes = "s\u00ed"
+            return f"El proyecto tiene {len(deliverables)} entregables/productos visibles y {evidences} evidencias cargadas.\n" + "\n".join([f"- {d['name']} | {d['deliverable_type']} | {d['status']} | Evidencia: {yes if d['evidence_url'] else 'no'}" for d in deliverables])
+        return f"Estado del proyecto {p['name']}: salud {m['health']}, avance {m['progress']}%, {m['open_risks']} riesgos abiertos ({m['high_risks']} altos), {m['delayed_tasks']} actividades atrasadas y {m['critical_path_tasks']} tareas en ruta cr\u00edtica. Recomendaciones: " + "; ".join(intel.get("recommendations", []))
     
     
     @router.post("/api/ai/chat")

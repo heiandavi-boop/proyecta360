@@ -15,17 +15,17 @@ MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "25"))
 MAX_UPLOAD_BYTES = int(os.getenv("PROYECTA360_MAX_UPLOAD_BYTES", str(MAX_UPLOAD_MB * 1024 * 1024)))
 
 DEFAULT_PARAMETERS: Dict[str, Any] = {
-    "control_model": "PMP para gobierno y control + Trabajo Agil para ejecucion",
-    "execution_methodologies": ["Scrum", "Kanban", "Tradicional", "Híbrida", "XP", "Lean"],
-    "selected_execution_methodology": "Hibrida",
-    "agile_mode": "Hibrido",
+    "control_model": "PMP para gobierno y control + Trabajo \u00c1gil para ejecuci\u00f3n",
+    "execution_methodologies": ["Scrum", "Kanban", "Tradicional", "H\u00edbrida", "XP", "Lean"],
+    "selected_execution_methodology": "H\u00edbrida",
+    "agile_mode": "H\u00edbrido",
     "calendar": {
-        "working_days": ["Lunes", "Martes", "Mi?rcoles", "Jueves", "Viernes"],
+        "working_days": ["Lunes", "Martes", "Mi\u00e9rcoles", "Jueves", "Viernes"],
         "workday_start": "08:00",
         "workday_end": "17:00",
         "timezone": "America/Bogota",
     },
-    "phases": ["Inicio", "Planeación", "Ejecución", "Pruebas", "Cierre"],
+    "phases": ["Inicio", "Planeaci\u00f3n", "Ejecuci\u00f3n", "Pruebas", "Cierre"],
     "task_statuses": ["Pendiente", "En progreso", "Bloqueada", "Completada"],
     "story_statuses": ["Lista", "Por hacer", "En progreso", "En revision", "Bloqueado", "Hecho"],
     "sprint": {"duration_days": 14, "story_point_scale": [1, 2, 3, 5, 8, 13]},

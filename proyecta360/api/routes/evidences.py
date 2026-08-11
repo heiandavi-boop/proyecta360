@@ -61,7 +61,7 @@ def build_router(ctx) -> APIRouter:
                     raise HTTPException(status_code=400, detail="Entregable inválido para este proyecto")
         raw = await file.read()
         if len(raw) > MAX_UPLOAD_BYTES:
-            raise HTTPException(status_code=413, detail="El archivo supera el tama?o m?ximo permitido")
+            raise HTTPException(status_code=413, detail="El archivo supera el tama\u00f1o m\u00e1ximo permitido")
         original = safe_filename(file.filename or "evidencia.bin")
         suffix = Path(original).suffix
         if suffix.lower() in BLOCKED_EXTENSIONS or suffix.lower() not in ALLOWED_EXTENSIONS:
@@ -94,7 +94,7 @@ def build_router(ctx) -> APIRouter:
                 raise HTTPException(status_code=404, detail="Evidencia no encontrada")
         path = secure_upload_path(row["file_path"])
         if not path.exists():
-            raise HTTPException(status_code=404, detail="Archivo f?sico no encontrado")
+            raise HTTPException(status_code=404, detail="Archivo f\u00edsico no encontrado")
         return FileResponse(
             path,
             media_type="application/octet-stream",

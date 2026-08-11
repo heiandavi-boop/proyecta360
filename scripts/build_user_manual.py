@@ -24,7 +24,7 @@ SCREENSHOTS = {
     "login": ("00-login.png", "Pantalla de ingreso protegido"),
     "portfolio": ("01-portafolio.png", "Portafolio ejecutivo con PHS y senales de gestion"),
     "master": ("02-plan-maestro.png", "Plan Maestro / Gantt con WBS, ruta critica y tareas resumen"),
-    "scrum": ("03-scrum.png", "Trabajo Agil con lista, tablero, ciclos y metricas"),
+    "scrum": ("03-scrum.png", "Trabajo \u00c1gil con lista, tablero, ciclos y m\u00e9tricas"),
     "resources": ("04-recursos.png", "Recursos y capacidad"),
     "risks": ("05-riesgos.png", "Riesgos del proyecto"),
     "conversations": ("06-conversaciones.png", "Conversaciones, decisiones y bloqueos"),
@@ -172,7 +172,7 @@ def add_toc(doc: Document) -> None:
         ["4", "Portafolio"],
         ["5", "Creacion y edicion de proyectos"],
         ["6", "Plan Maestro / Gantt"],
-        ["7", "Trabajo Agil"],
+        ["7", "Trabajo \u00c1gil"],
         ["8", "Recursos"],
         ["9", "Presupuesto"],
         ["10", "Riesgos"],
@@ -193,7 +193,7 @@ def add_overview(doc: Document, shots: dict[str, Path]) -> None:
         "Proyecta360 es una plataforma para gestionar proyectos con un enfoque hibrido: combina control tradicional tipo PMP, ejecucion agil adaptable, trazabilidad documental, conversaciones operativas e inteligencia artificial."
     )
     add_bullets(doc, [
-        "Centraliza portafolio, cronograma, riesgos, recursos, Trabajo Agil, conversaciones, evidencias e IA.",
+        "Centraliza portafolio, cronograma, riesgos, recursos, Trabajo \u00c1gil, conversaciones, evidencias e IA.",
         "Calcula senales ejecutivas como avance real vs esperado, desviacion presupuestal y Project Health Score.",
         "Permite crear proyectos manualmente o importarlos desde CSV con entidades relacionadas.",
         "Mantiene permisos por rol y exige aprobacion humana antes de aplicar recomendaciones de IA.",
@@ -224,7 +224,7 @@ def add_auth(doc: Document, shots: dict[str, Path]) -> None:
 def add_common(doc: Document) -> None:
     doc.add_heading("3. Elementos comunes de la interfaz", level=1)
     add_bullets(doc, [
-        "Barra lateral: acceso a Portafolio, Plan Maestro, Trabajo Agil, Recursos, Presupuesto, Riesgos, Conversar, Conocimiento e IA Proyecto.",
+        "Barra lateral: acceso a Portafolio, Plan Maestro, Trabajo \u00c1gil, Recursos, Presupuesto, Riesgos, Conversar, Conocimiento e IA Proyecto.",
         "Encabezado del proyecto: muestra nombre, descripcion y vista activa.",
         "KPIs del proyecto: aparecen en las vistas de gestion y resumen avance general, fecha fin calculada, riesgos abiertos, ruta critica y presupuesto ejecutado.",
         "Botones primarios: crean registros o ejecutan acciones principales.",
@@ -292,15 +292,15 @@ def add_master(doc: Document, shots: dict[str, Path]) -> None:
         ["Expandir / Contraer", "Muestra u oculta tareas hijas en la WBS."],
         ["Ver ruta critica", "Filtra tareas que afectan la fecha final del proyecto."],
         ["Recalcular cronograma", "Actualiza fechas, duraciones, ruta critica y tareas resumen."],
-        ["Sincronizar avance desde Trabajo Agil", "Actualiza avance de una tarea a partir de items de trabajo vinculados."],
+        ["Sincronizar avance desde Trabajo \u00c1gil", "Actualiza avance de una tarea a partir de items de trabajo vinculados."],
     ])
     add_note(doc, "Tareas resumen", "Cuando una tarea tiene hijas, sus fechas, duracion y avance se calculan desde sus descendientes. El usuario no debe editar manualmente esos valores.")
 
 
 def add_scrum(doc: Document, shots: dict[str, Path]) -> None:
-    doc.add_heading("7. Trabajo Agil", level=1)
+    doc.add_heading("7. Trabajo \u00c1gil", level=1)
     add_screenshot(doc, shots["scrum"], SCREENSHOTS["scrum"][1])
-    doc.add_paragraph("Trabajo Agil reemplaza el modulo Scrum como experiencia principal. Permite ejecutar con Scrum, Kanban, Scrumban o modo hibrido sin perder conexion con Plan Maestro, riesgos, presupuesto e IA.")
+    doc.add_paragraph("Trabajo \u00c1gil reemplaza el m\u00f3dulo Scrum como experiencia principal. Permite ejecutar con Scrum, Kanban, Scrumban o modo h\u00edbrido sin perder conexi\u00f3n con Plan Maestro, riesgos, presupuesto e IA.")
     add_table(doc, ["Elemento", "Uso"], [
         ["Nuevo item", "Registra titulo, tipo, descripcion, ciclo, estado, puntos, responsable, prioridad y vinculos operativos."],
         ["Lista de trabajo", "Separa la planeacion del trabajo futuro del tablero de ejecucion."],
@@ -450,7 +450,7 @@ def add_workflows(doc: Document) -> None:
         ["Importar proyecto completo", "Portafolio > Importar CSV > seleccionar archivo > validar entidades > abrir proyecto importado."],
         ["Gestionar cronograma", "Plan Maestro > crear tareas e hitos > indentar para WBS > vincular precedencias > recalcular > revisar ruta critica."],
         ["Planear presupuesto mensual", "Presupuesto > seleccionar mes > registrar rubro, plan y ejecutado > revisar desviacion y fuente del PHS."],
-        ["Ejecutar Trabajo Agil conectado", "Trabajo Agil > crear items > elegir modo > vincular a tarea del Plan Maestro > mover estados > sincronizar avance con Plan Maestro."],
+        ["Ejecutar Trabajo \u00c1gil conectado", "Trabajo \u00c1gil > crear \u00edtems > elegir modo > vincular a tarea del Plan Maestro > mover estados > sincronizar avance con Plan Maestro."],
         ["Gestionar riesgo materializado", "Riesgos > registrar o actualizar riesgo > estado Materializado > fecha > impacto real > contingencia."],
         ["Documentar decision", "Conversar > nuevo hilo o hilo existente > tipo Decision o Acuerdo > guardar mensaje."],
         ["Cerrar evidencia", "Conocimiento > agregar entregable > adjuntar evidencia > descargar si se requiere soporte."],
