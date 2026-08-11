@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import sqlite3
@@ -24,7 +24,7 @@ def create_app(
 ) -> FastAPI:
     docs_enabled = os.getenv("PROYECTA360_ENABLE_DOCS", "").lower() in {"1", "true", "yes"}
     app = FastAPI(
-        title="Proyecta360 API",
+        title="PRUNIN API",
         version="0.1.0",
         lifespan=lifespan,
         docs_url="/docs" if docs_enabled else None,

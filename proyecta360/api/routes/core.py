@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -27,7 +27,7 @@ def build_router(ctx) -> APIRouter:
 
     @router.get("/api/health")
     def health() -> Dict[str, Any]:
-        return {"status": "ok", "app": "Proyecta360", "time": datetime.utcnow().isoformat()}
+        return {"status": "ok", "app": "PRUNIN", "time": datetime.utcnow().isoformat()}
 
     @router.get("/api/health/ready")
     def ready() -> Dict[str, Any]:
@@ -42,7 +42,7 @@ def build_router(ctx) -> APIRouter:
             status = "error"
         return {
             "status": status,
-            "app": "Proyecta360",
+            "app": "PRUNIN",
             "environment": APP_ENV,
             "database_backend": DATABASE_BACKEND,
             "checks": checks,

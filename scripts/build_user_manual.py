@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_DIR = ROOT / "docs" / "manual"
 ASSET_DIR = OUT_DIR / "assets"
 CROP_DIR = OUT_DIR / "cropped"
-OUTPUT = OUT_DIR / "manual_usuario_proyecta360.docx"
+OUTPUT = OUT_DIR / "manual_usuario_prunin.docx"
 
 
 SCREENSHOTS = {
@@ -138,7 +138,7 @@ def configure_styles(doc: Document) -> None:
 def add_cover(doc: Document) -> None:
     title = doc.add_paragraph()
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = title.add_run("Manual de Usuario Proyecta360")
+    run = title.add_run("Manual de Usuario PRUNIN")
     run.bold = True
     run.font.size = Pt(26)
     run.font.color.rgb = RGBColor(15, 23, 42)
@@ -154,10 +154,10 @@ def add_cover(doc: Document) -> None:
         "Este documento cubre los modulos visibles de la aplicacion, los flujos operativos, las funciones transversales, los roles, las importaciones, exportaciones, evidencias, IA y recomendaciones.",
     )
     meta = [
-        ["Aplicacion", "Proyecta360"],
+        ["Aplicacion", "PRUNIN"],
         ["Version documentada", "MVP actualizado con PHS ejecutivo"],
         ["Fecha", date.today().isoformat()],
-        ["Usuario de referencia para capturas", "alejandra@proyecta360.ai - Project Manager"],
+        ["Usuario de referencia para capturas", "alejandra@prunin.ai - Project Manager"],
     ]
     add_table(doc, ["Campo", "Detalle"], meta)
     doc.add_page_break()
@@ -190,7 +190,7 @@ def add_toc(doc: Document) -> None:
 def add_overview(doc: Document, shots: dict[str, Path]) -> None:
     doc.add_heading("1. Vision general", level=1)
     doc.add_paragraph(
-        "Proyecta360 es una plataforma para gestionar proyectos con un enfoque hibrido: combina control tradicional tipo PMP, ejecucion agil adaptable, trazabilidad documental, conversaciones operativas e inteligencia artificial."
+        "PRUNIN es una plataforma para gestionar proyectos con un enfoque hibrido: combina control tradicional tipo PMP, ejecucion agil adaptable, trazabilidad documental, conversaciones operativas e inteligencia artificial."
     )
     add_bullets(doc, [
         "Centraliza portafolio, cronograma, riesgos, recursos, Trabajo \u00c1gil, conversaciones, evidencias e IA.",
@@ -213,9 +213,9 @@ def add_auth(doc: Document, shots: dict[str, Path]) -> None:
     ])
     doc.add_heading("Usuarios iniciales", level=2)
     add_table(doc, ["Rol", "Correo", "Permisos"], [
-        ["Administrador", "admin@proyecta360.local", "Lectura, escritura y administracion de configuraciones sensibles."],
-        ["Project Manager", "alejandra@proyecta360.ai", "Lectura y escritura operativa sobre proyectos, tareas, riesgos, recursos, conversaciones, evidencias e IA."],
-        ["Consulta", "consulta@proyecta360.local", "Lectura. No puede crear, editar, aplicar recomendaciones ni cargar archivos."],
+        ["Administrador", "admin@prunin.local", "Lectura, escritura y administracion de configuraciones sensibles."],
+        ["Project Manager", "alejandra@prunin.ai", "Lectura y escritura operativa sobre proyectos, tareas, riesgos, recursos, conversaciones, evidencias e IA."],
+        ["Consulta", "consulta@prunin.local", "Lectura. No puede crear, editar, aplicar recomendaciones ni cargar archivos."],
     ])
     doc.add_heading("Selector de idioma", level=2)
     doc.add_paragraph("La barra superior incluye botones de idioma. Permite cambiar los textos de la interfaz entre los catalogos disponibles: ingles, chino, hindi, espanol y arabe.")
@@ -513,7 +513,7 @@ def build() -> None:
     for i, section in enumerate(doc.sections):
         footer = section.footer.paragraphs[0]
         footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        footer.text = "Manual de Usuario Proyecta360"
+        footer.text = "Manual de Usuario PRUNIN"
 
     doc.save(OUTPUT)
     print(OUTPUT)

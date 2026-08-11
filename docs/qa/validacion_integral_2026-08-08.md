@@ -1,4 +1,4 @@
-# Reporte de Validacion Proyecta360
+﻿# Reporte de Validacion PRUNIN
 
 Fecha: 2026-08-08  
 Alcance: backend FastAPI, frontend React/TypeScript, flujos UI, endpoints, datos, roles, CSV, IA y consistencia visual.
@@ -38,7 +38,7 @@ Alcance: backend FastAPI, frontend React/TypeScript, flujos UI, endpoints, datos
 | ID | Modulo | Problema | Impacto | Evidencia | Accion tomada o recomendada |
 |---|---|---|---|---|---|
 | MD-001 | CSV | Reimportar el mismo CSV duplica proyectos con el mismo nombre. | Puede ensuciar demos, KPIs y portafolio. | Reimport sample: nombre `Proyecto Demo Importado` aparece 3 veces. | Recomendado: idempotencia por `import_id`/nombre o advertencia de duplicado. |
-| MD-002 | Permisos UI | El rol Consulta ve `+ Nuevo proyecto`, aunque backend responde 403. | Confusion de usuario y mala percepcion de permisos. | UI con `consulta@proyecta360.local` muestra accion visible. | Recomendado: ocultar o deshabilitar acciones de escritura por rol. |
+| MD-002 | Permisos UI | El rol Consulta ve `+ Nuevo proyecto`, aunque backend responde 403. | Confusion de usuario y mala percepcion de permisos. | UI con `consulta@prunin.local` muestra accion visible. | Recomendado: ocultar o deshabilitar acciones de escritura por rol. |
 | MD-003 | Plan Maestro | KPI de ruta critica muestra cantidad, pero la tabla no identifica explicitamente esas tareas. | Usuario no sabe que tareas forman la ruta critica. | `metrics.critical_path_tasks=9`; payload de tareas no expone marca visual equivalente. | Recomendado: exponer `is_critical` o resaltar por dependencias calculadas. |
 | MD-004 | IA | Clic en `Aplicar` detras del modal queda interceptado por el modal abierto. | Interaccion confusa si el usuario intenta operar tabla con modal abierto. | Playwright: `modal-backdrop intercepts pointer events`. | Aceptable si se opera desde modal; recomendado cerrar modal o usar solo acciones dentro del modal. |
 

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import math
@@ -858,7 +858,7 @@ def build_router(ctx) -> APIRouter:
             user = current_user(conn, request)
             snapshot = project_snapshot(conn, project_id, payload)
             settings = settings_row(conn)
-            notice = "Motor interno activo: analisis generado con reglas de Proyecta360. Configure y pruebe una API Key para usar IA real."
+            notice = "Motor interno activo: analisis generado con reglas de PRUNIN. Configure y pruebe una API Key para usar IA real."
             if ai_settings_ready(settings):
                 try:
                     result = configured_ai_analysis(settings, snapshot, request_language(request))
@@ -867,7 +867,7 @@ def build_router(ctx) -> APIRouter:
                     now = datetime.utcnow().isoformat()
                     conn.execute("UPDATE ai_settings SET status='Error', last_test_at=?, last_error=? WHERE id=?", (now, str(exc.detail), settings["id"]))
                     result = internal_rules_analysis(snapshot)
-                    notice = f"IA real no disponible ({exc.detail}). Se uso motor interno de Proyecta360."
+                    notice = f"IA real no disponible ({exc.detail}). Se uso motor interno de PRUNIN."
             else:
                 result = internal_rules_analysis(snapshot)
             persisted = persist_analysis(conn, project_id, user["id"], snapshot, result)

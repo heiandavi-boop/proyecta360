@@ -1,4 +1,4 @@
-# Proyecta360
+﻿# PRUNIN
 
 Plataforma para gestion integral de proyectos con enfoque hibrido PMP + Scrum, control de cronograma, riesgos, recursos, conversaciones, evidencias, productos de conocimiento y Motor IA interno.
 
@@ -64,16 +64,16 @@ npm run dev
 
 | Rol | Correo | Password por defecto |
 |---|---|---|
-| Administrador | admin@proyecta360.local | admin123 |
-| Project Manager | alejandra@proyecta360.ai | demo123 |
-| Consulta | consulta@proyecta360.local | consulta123 |
+| Administrador | admin@prunin.local | admin123 |
+| Project Manager | alejandra@prunin.ai | demo123 |
+| Consulta | consulta@prunin.local | consulta123 |
 
 Puedes sobreescribirlos con:
 
 ```text
-PROYECTA360_ADMIN_PASSWORD
-PROYECTA360_PM_PASSWORD
-PROYECTA360_READONLY_PASSWORD
+PRUNIN_ADMIN_PASSWORD
+PRUNIN_PM_PASSWORD
+PRUNIN_READONLY_PASSWORD
 ```
 
 ## Configuracion
@@ -89,11 +89,11 @@ UPLOAD_DIR
 MAX_UPLOAD_MB
 ```
 
-Si `DATABASE_URL` esta vacia, la aplicacion usa SQLite en `PROYECTA360_DB` o `proyecta360.db`.
+Si `DATABASE_URL` esta vacia, la aplicacion usa SQLite en `PRUNIN_DB` o `prunin.db`.
 Para PostgreSQL:
 
 ```powershell
-$env:DATABASE_URL="postgresql://proyecta360:proyecta360@localhost:5432/proyecta360"
+$env:DATABASE_URL="postgresql://prunin:prunin@localhost:5432/prunin"
 .\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -129,4 +129,4 @@ Regenerar OpenAPI y tipos TypeScript:
 - `GET /` sirve el build React desde `frontend/dist`.
 - `/api/*` expone FastAPI.
 - `static/i18n/*.json` se mantiene como catalogo multidioma.
-- `uploads/` y `proyecta360.db` se generan localmente y no deben versionarse.
+- `uploads/` y `prunin.db` se generan localmente y no deben versionarse.

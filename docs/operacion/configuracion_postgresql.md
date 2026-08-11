@@ -1,10 +1,10 @@
-# Configuracion PostgreSQL
+﻿# Configuracion PostgreSQL
 
 Fase 1 habilita PostgreSQL mediante `DATABASE_URL` sin retirar SQLite del modo local.
 
 ## Variables
 
-- `DATABASE_URL`: si esta vacia, Proyecta360 usa SQLite en `PROYECTA360_DB`.
+- `DATABASE_URL`: si esta vacia, PRUNIN usa SQLite en `PRUNIN_DB`.
 - `APP_ENV`: ambiente logico (`local`, `staging`, `production`).
 - `SECRET_KEY`: clave de aplicacion. Cambiar siempre fuera de local.
 - `ACCESS_TOKEN_EXPIRE_MINUTES`: minutos de vigencia del token de sesion.
@@ -21,7 +21,7 @@ cd "C:\Users\atruj\OneDrive\Escritorio\Proyecto alejandra\proyecta360_mvp_v21_ms
 ## Ejecucion con PostgreSQL
 
 ```powershell
-$env:DATABASE_URL="postgresql://proyecta360:proyecta360@localhost:5432/proyecta360"
+$env:DATABASE_URL="postgresql://prunin:prunin@localhost:5432/prunin"
 .\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8000 --reload
 ```
 

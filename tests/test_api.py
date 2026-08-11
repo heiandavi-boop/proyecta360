@@ -13,12 +13,12 @@ from proyecta360.services.internal_ai_engine import analyze_project_internal_ai
 
 @pytest.fixture
 def client(tmp_path):
-    main_module.DB_PATH = tmp_path / "proyecta360_test.db"
+    main_module.DB_PATH = tmp_path / "prunin_test.db"
     with TestClient(app_module.app) as c:
         yield c
 
 
-def auth_headers(client, email="admin@proyecta360.local", password="admin123"):
+def auth_headers(client, email="admin@prunin.local", password="admin123"):
     response = client.post("/api/auth/login", json={"email": email, "password": password})
     assert response.status_code == 200
     return {"Authorization": f"Bearer {response.json()['token']}"}
@@ -50,7 +50,7 @@ def test_bootstrap_seeds_default_project(client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["projects"]
-    assert payload["current_project"]["name"] == "Proyecta360 LAC"
+    assert payload["current_project"]["name"] == "PRUNIN LAC"
     assert payload["components"]
     assert payload["deliverables"]
     assert payload["history"]
@@ -386,7 +386,7 @@ def test_rejects_cross_project_conversation_message(client):
 
 
 def test_auth_login_and_me(client):
-    response = client.post('/api/auth/login', json={'email':'admin@proyecta360.local','password':'admin123'})
+    response = client.post('/api/auth/login', json={'email':'admin@prunin.local','password':'admin123'})
     assert response.status_code == 200
     token = response.json()['token']
     me = client.get('/api/auth/me', headers={'Authorization': f'Bearer {token}'})
@@ -395,12 +395,12 @@ def test_auth_login_and_me(client):
 
 
 def test_login_hashes_token_and_migrates_password(client):
-    response = client.post("/api/auth/login", json={"email": "admin@proyecta360.local", "password": "admin123"})
+    response = client.post("/api/auth/login", json={"email": "admin@prunin.local", "password": "admin123"})
     assert response.status_code == 200
     token = response.json()["token"]
 
     with main_module.db() as conn:
-        user = main_module.one(conn, "SELECT * FROM users WHERE email = ?", ("admin@proyecta360.local",))
+        user = main_module.one(conn, "SELECT * FROM users WHERE email = ?", ("admin@prunin.local",))
 
     assert user["access_token"] == ""
     assert user["access_token_hash"]
@@ -412,7 +412,7 @@ def test_login_hashes_token_and_migrates_password(client):
 def test_auth_login_accepts_browser_form_fallback(client):
     response = client.post(
         "/api/auth/login",
-        data={"email": "admin@proyecta360.local", "password": "admin123"},
+        data={"email": "admin@prunin.local", "password": "admin123"},
     )
 
     assert response.status_code == 200
@@ -431,7 +431,7 @@ def test_mutations_require_session(client):
 def test_consulta_role_cannot_mutate(client):
     response = client.post(
         "/api/projects",
-        headers=auth_headers(client, "consulta@proyecta360.local", "consulta123"),
+        headers=auth_headers(client, "consulta@prunin.local", "consulta123"),
         json={"name": "No permitido", "start_date": "2026-09-01"},
     )
 
@@ -439,7 +439,7 @@ def test_consulta_role_cannot_mutate(client):
 
 
 def test_seed_endpoint_is_admin_only(client):
-    pm_response = client.post("/api/seed", headers=auth_headers(client, "alejandra@proyecta360.ai", "demo123"))
+    pm_response = client.post("/api/seed", headers=auth_headers(client, "alejandra@prunin.ai", "demo123"))
     admin_response = client.post("/api/seed", headers=auth_headers(client))
 
     assert pm_response.status_code == 403
@@ -455,7 +455,7 @@ def test_mutations_are_audited_and_ops_metrics_are_admin_only(client):
     )
 
     assert create.status_code == 200
-    forbidden = client.get("/api/ops/metrics", headers=auth_headers(client, "alejandra@proyecta360.ai", "demo123"))
+    forbidden = client.get("/api/ops/metrics", headers=auth_headers(client, "alejandra@prunin.ai", "demo123"))
     metrics = client.get("/api/ops/metrics", headers=headers)
 
     assert forbidden.status_code == 403
@@ -494,7 +494,7 @@ def test_export_csv_matches_import_structure_and_can_be_reimported(client):
     assert response.headers["content-type"].startswith("text/csv")
     rows = list(csv.DictReader(io.StringIO(response.content.decode("utf-8-sig"))))
     assert rows[0]["entity"] == "project"
-    assert rows[0]["name"] == "Proyecta360 LAC"
+    assert rows[0]["name"] == "PRUNIN LAC"
     assert any(row["entity"] == "task" and row["import_id"].startswith("T") for row in rows)
     assert any(row["entity"] == "dependency" and row["predecessor_ref"].startswith("T") and row["successor_ref"].startswith("T") for row in rows)
 
@@ -516,7 +516,7 @@ def test_project_report_pdf_download(client):
 
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
-    assert response.headers["content-disposition"].endswith(f"proyecta360_informe_proyecto_{project_id}.pdf")
+    assert response.headers["content-disposition"].endswith(f"prunin_informe_proyecto_{project_id}.pdf")
     assert response.content.startswith(b"%PDF-1.4")
     assert b"Informe Ejecutivo del Proyecto" in response.content
     assert len(response.content) > 5000
@@ -883,7 +883,7 @@ def test_ai_settings_support_multiple_providers(client):
             "provider": "openrouter",
             "api_key": "or-test-secret-abcd",
             "model": "anthropic/claude-sonnet-4.5",
-            "config": {"site_url": "https://proyecta360.local", "app_name": "Proyecta360"},
+            "config": {"site_url": "https://prunin.local", "app_name": "PRUNIN"},
         },
     )
 
@@ -894,7 +894,7 @@ def test_ai_settings_support_multiple_providers(client):
     assert body["provider_name"] == "OpenRouter"
     assert body["model"] == "anthropic/claude-sonnet-4.5"
     assert body["api_key_masked"] == "or-****abcd"
-    assert body["config"]["app_name"] == "Proyecta360"
+    assert body["config"]["app_name"] == "PRUNIN"
     assert "or-test-secret-abcd" not in str(body)
 
 
@@ -985,7 +985,7 @@ def test_ai_internal_rules_analysis_creates_pending_recommendations_and_history(
     assert body["recommendation_ids"]
     assert body["mode"] == "internal_rules"
     assert body["engine_label"] == "Motor IA interno v1"
-    assert "reglas de Proyecta360" in body["analysis_notice"]
+    assert "reglas de PRUNIN" in body["analysis_notice"]
 
     recs = client.get(f"/api/projects/{project_id}/ai/recommendations", headers=auth_headers(client)).json()["recommendations"]
     assert any(r["status"] == "Pendiente" for r in recs)

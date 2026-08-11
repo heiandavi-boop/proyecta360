@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
+﻿import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
 
 import type { WorkItemIn } from "@contracts/types";
 
@@ -71,9 +71,9 @@ function modeFromProject(data: BootstrapPayload): AgileMode {
 
 export function AgileWorkView({ busy = false, canWrite = true, data, onCreateWorkItem, onUpdateWorkItem }: AgileWorkViewProps) {
   const { t } = useI18n();
-  const statusStorageKey = `proyecta360.agile.statuses.${data.current_project.id}`;
-  const statusOrderStorageKey = `proyecta360.agile.statusOrder.${data.current_project.id}`;
-  const modeStorageKey = `proyecta360.agile.mode.${data.current_project.id}`;
+  const statusStorageKey = `prunin.agile.statuses.${data.current_project.id}`;
+  const statusOrderStorageKey = `prunin.agile.statusOrder.${data.current_project.id}`;
+  const modeStorageKey = `prunin.agile.mode.${data.current_project.id}`;
   const [customStatuses, setCustomStatuses] = useState<string[]>([]);
   const [statusOrder, setStatusOrder] = useState<string[]>([]);
   const [newStatus, setNewStatus] = useState("");
@@ -191,14 +191,14 @@ export function AgileWorkView({ busy = false, canWrite = true, data, onCreateWor
 
   function onDragStart(event: DragEvent<HTMLElement>, itemId: number) {
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("application/x-proyecta360-work-item", String(itemId));
+    event.dataTransfer.setData("application/x-prunin-work-item", String(itemId));
     setDraggingItemId(itemId);
   }
 
   function onColumnDragStart(event: DragEvent<HTMLElement>, status: string) {
     event.stopPropagation();
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("application/x-proyecta360-column", status);
+    event.dataTransfer.setData("application/x-prunin-column", status);
     setDraggingStatus(status);
   }
 
@@ -219,12 +219,12 @@ export function AgileWorkView({ busy = false, canWrite = true, data, onCreateWor
 
   async function onDropItem(event: DragEvent<HTMLElement>, status: string) {
     event.preventDefault();
-    if (Array.from(event.dataTransfer.types).includes("application/x-proyecta360-column")) {
+    if (Array.from(event.dataTransfer.types).includes("application/x-prunin-column")) {
       onDropColumn(status);
       return;
     }
     setDragOverStatus("");
-    const itemId = Number(event.dataTransfer.getData("application/x-proyecta360-work-item") || draggingItemId);
+    const itemId = Number(event.dataTransfer.getData("application/x-prunin-work-item") || draggingItemId);
     const item = data.stories.find((entry) => entry.id === itemId);
     setDraggingItemId(null);
     if (!canWrite || !item || item.status === status || busy) return;

@@ -1,1 +1,1 @@
-"""Core infrastructure helpers for Proyecta360."""
+﻿"""Core infrastructure helpers for PRUNIN."""

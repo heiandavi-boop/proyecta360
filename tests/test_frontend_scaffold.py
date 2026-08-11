@@ -1,4 +1,4 @@
-import json
+﻿import json
 from pathlib import Path
 
 
@@ -134,7 +134,7 @@ def test_frontend_phase_6_has_domain_create_flows():
     assert "draggable={canWrite && !busy}" in scrum
     assert "onColumnDragStart" in scrum
     assert "statusOrderStorageKey" in scrum
-    assert "application/x-proyecta360-column" in scrum
+    assert "application/x-prunin-column" in scrum
     assert "kanban-status-form" in scrum
     assert "burndown-card" in scrum
     assert "burndown-actual" in scrum

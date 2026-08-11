@@ -1,4 +1,4 @@
-import { LogOut } from "lucide-react";
+﻿import { LogOut } from "lucide-react";
 
 import type { PublicUser } from "@/api/client";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -18,7 +18,7 @@ export function TopBar({ activeView, user, onViewChange, onLogout }: TopBarProps
   return (
     <>
       <aside className="sidebar">
-        <strong className="brand">Proyecta360</strong>
+        <strong className="brand">PRUNIN</strong>
         <nav className="main-tabs" aria-label="Main navigation">
           {APP_VIEWS.map((item) => {
             const Icon = item.icon;

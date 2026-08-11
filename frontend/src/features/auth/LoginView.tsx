@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+﻿import { FormEvent, useState } from "react";
 
 import { login, saveToken } from "@/api/client";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -10,7 +10,7 @@ type LoginViewProps = {
 
 export function LoginView({ onAuthenticated }: LoginViewProps) {
   const { t } = useI18n();
-  const [email, setEmail] = useState("admin@proyecta360.local");
+  const [email, setEmail] = useState("admin@prunin.local");
   const [password, setPassword] = useState("admin123");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,7 +34,7 @@ export function LoginView({ onAuthenticated }: LoginViewProps) {
     <main className="auth-shell">
       <LanguageSwitcher />
       <section>
-        <p className="eyebrow">Proyecta360</p>
+        <p className="eyebrow">PRUNIN</p>
         <h1>{t("auth.hero.title")}</h1>
         <p>{t("auth.hero.description")}</p>
       </section>

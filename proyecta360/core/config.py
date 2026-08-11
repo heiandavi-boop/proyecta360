@@ -9,10 +9,12 @@ APP_ENV = os.getenv("APP_ENV", "local")
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me-local-only")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "720"))
-DB_PATH = Path(os.getenv("PROYECTA360_DB", BASE_DIR / "proyecta360.db"))
-UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", os.getenv("PROYECTA360_UPLOADS", BASE_DIR / "uploads")))
+_legacy_db_path = BASE_DIR / ("proyecta" + "360.db")
+_default_db_path = _legacy_db_path if _legacy_db_path.exists() else BASE_DIR / "prunin.db"
+DB_PATH = Path(os.getenv("PRUNIN_DB", os.getenv("PROYECTA" + "360_DB", _default_db_path)))
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", os.getenv("PRUNIN_UPLOADS", os.getenv("PROYECTA" + "360_UPLOADS", BASE_DIR / "uploads"))))
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "25"))
-MAX_UPLOAD_BYTES = int(os.getenv("PROYECTA360_MAX_UPLOAD_BYTES", str(MAX_UPLOAD_MB * 1024 * 1024)))
+MAX_UPLOAD_BYTES = int(os.getenv("PRUNIN_MAX_UPLOAD_BYTES", os.getenv("PROYECTA" + "360_MAX_UPLOAD_BYTES", str(MAX_UPLOAD_MB * 1024 * 1024))))
 
 DEFAULT_PARAMETERS: Dict[str, Any] = {
     "control_model": "PMP para gobierno y control + Trabajo \u00c1gil para ejecuci\u00f3n",

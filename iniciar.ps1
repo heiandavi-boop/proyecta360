@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 if (-not (Test-Path ".venv")) {
     py -3.10 -m venv .venv
@@ -19,5 +19,5 @@ while (Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue) {
     $port++
 }
 
-Write-Host "Iniciando Proyecta360 en http://127.0.0.1:$port"
+Write-Host "Iniciando PRUNIN en http://127.0.0.1:$port"
 & $python -m uvicorn app:app --reload --host 127.0.0.1 --port $port

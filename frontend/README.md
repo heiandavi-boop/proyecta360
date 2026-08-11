@@ -1,6 +1,6 @@
-# Proyecta360 Frontend
+﻿# PRUNIN Frontend
 
-Frontend principal de Proyecta360 en React + TypeScript.
+Frontend principal de PRUNIN en React + TypeScript.
 
 ## Requisitos
 

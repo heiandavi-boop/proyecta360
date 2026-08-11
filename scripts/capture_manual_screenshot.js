@@ -1,4 +1,4 @@
-const fs = require("fs");
+﻿const fs = require("fs");
 const http = require("http");
 const { spawn } = require("child_process");
 const path = require("path");
@@ -90,7 +90,7 @@ async function main() {
             el.dispatchEvent(new Event('input', { bubbles: true }));
             el.dispatchEvent(new Event('change', { bubbles: true }));
           };
-          set(email, 'alejandra@proyecta360.ai');
+          set(email, 'alejandra@prunin.ai');
           set(pass, 'demo123');
           const button = [...document.querySelectorAll('button')].find((item) => /Ingresar|Login|Sign in/i.test(item.textContent)) || document.querySelector('button[type="submit"]');
           if (button) button.click();

@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import html
@@ -935,14 +935,14 @@ def build_router(ctx) -> APIRouter:
         recommendations = intel.get("recommendations", [])[:4] if isinstance(intel, dict) else []
 
         def header(title: str, subtitle: str = "") -> None:
-            pdf.rect(0, 548, 842, 47, fill="#0f2f69")
+            pdf.rect(0, 548, 842, 47, fill="#171A21")
             pdf.text(32, 575, title, 19, "#ffffff", True)
             if subtitle:
                 pdf.text(34, 557, subtitle, 9, "#bfdbfe")
-            pdf.text(720, 575, "Proyecta360", 13, "#ffffff", True)
+            pdf.text(720, 575, "PRUNIN", 13, "#ffffff", True)
             pdf.text(712, 558, datetime.utcnow().strftime("%Y-%m-%d"), 9, "#bfdbfe")
 
-        def kpi_card(x: float, y: float, w: float, label: str, value: str, note: str, accent: str = "#2563eb") -> None:
+        def kpi_card(x: float, y: float, w: float, label: str, value: str, note: str, accent: str = "#2764E8") -> None:
             pdf.rect(x, y, w, 56, fill="#ffffff", stroke="#dbe4f0")
             pdf.rect(x, y + 52, w, 4, fill=accent)
             pdf.text(x + 10, y + 36, label.upper(), 7, "#64748b", True)
@@ -953,14 +953,14 @@ def build_router(ctx) -> APIRouter:
         header("Informe Ejecutivo del Proyecto", p.get("name", ""))
         pdf.text(32, 526, p.get("description", ""), 10, "#334155")
         pdf.text(32, 506, f"PM: {p.get('project_manager', 'PMO')}   |   Sponsor: {p.get('sponsor', '')}   |   Metodología: {p.get('methodology', '')}", 9, "#475569")
-        kpi_card(32, 430, 120, "Avance real", percent(m.get("progress")), f"Esperado {percent(m.get('expected_progress'))}", "#2563eb")
-        kpi_card(164, 430, 120, "Fecha fin", str(p.get("end_date", "")), "Según plan actual", "#2563eb")
-        kpi_card(296, 430, 120, "Ruta crítica", str(m.get("critical_path_tasks", 0)), "tareas", "#1e40af")
+        kpi_card(32, 430, 120, "Avance real", percent(m.get("progress")), f"Esperado {percent(m.get('expected_progress'))}", "#2764E8")
+        kpi_card(164, 430, 120, "Fecha fin", str(p.get("end_date", "")), "Según plan actual", "#2764E8")
+        kpi_card(296, 430, 120, "Ruta crítica", str(m.get("critical_path_tasks", 0)), "tareas", "#171A21")
         kpi_card(428, 430, 120, "Riesgos altos", str(m.get("high_risks", 0)), "abiertos", "#dc2626")
         kpi_card(560, 430, 250, "Presupuesto ejecutado", money(m.get("spent"), currency), f"Total {money(m.get('budget'), currency)}", "#15803d")
 
         pdf.rect(32, 260, 250, 145, fill="#ffffff", stroke="#dbe4f0")
-        pdf.rect(32, 382, 250, 23, fill="#0f2f69")
+        pdf.rect(32, 382, 250, 23, fill="#171A21")
         pdf.text(44, 390, "Resumen ejecutivo", 11, "#ffffff", True)
         framework = (p.get("parameters") or {}).get("strategic_framework", {})
         summary = framework.get("general_objective") or p.get("description") or "Proyecto estratégico con seguimiento integral de alcance, cronograma, presupuesto, riesgos y entregables."
@@ -971,7 +971,7 @@ def build_router(ctx) -> APIRouter:
         pdf.text(52, y - 48, f"• Riesgos abiertos: {m.get('open_risks', 0)}", 8, "#334155")
 
         pdf.rect(296, 260, 330, 145, fill="#ffffff", stroke="#dbe4f0")
-        pdf.rect(296, 382, 330, 23, fill="#0f2f69")
+        pdf.rect(296, 382, 330, 23, fill="#171A21")
         pdf.text(308, 390, "Plan maestro por componente", 11, "#ffffff", True)
         chart_x, chart_y = 420, 360
         for index, component in enumerate(components[:6]):
@@ -979,11 +979,11 @@ def build_router(ctx) -> APIRouter:
             progress = max(0, min(100, float(component.get("progress") or 0)))
             pdf.text(308, yrow, str(component.get("name", ""))[:31], 7, "#0f172a", True)
             pdf.rect(chart_x, yrow - 2, 160, 8, fill="#dbeafe")
-            pdf.rect(chart_x, yrow - 2, 160 * progress / 100, 8, fill="#2563eb")
+            pdf.rect(chart_x, yrow - 2, 160 * progress / 100, 8, fill="#2764E8")
             pdf.text(588, yrow, f"{progress:.0f}%", 7, "#475569", True)
 
         pdf.rect(640, 260, 170, 145, fill="#ffffff", stroke="#dbe4f0")
-        pdf.rect(640, 382, 170, 23, fill="#0f2f69")
+        pdf.rect(640, 382, 170, 23, fill="#171A21")
         pdf.text(652, 390, "Semáforo ejecutivo", 11, "#ffffff", True)
         lights = [
             ("Alcance", "En control", "#16a34a"),
@@ -999,16 +999,16 @@ def build_router(ctx) -> APIRouter:
             pdf.text(735, yrow - 2, status, 7, color, True)
 
         pdf.rect(32, 56, 376, 178, fill="#ffffff", stroke="#dbe4f0")
-        pdf.rect(32, 211, 376, 23, fill="#0f2f69")
+        pdf.rect(32, 211, 376, 23, fill="#171A21")
         pdf.text(44, 219, "Riesgos y decisiones", 11, "#ffffff", True)
         for index, risk in enumerate(risks):
             yrow = 193 - index * 29
             pdf.text(46, yrow, str(risk.get("title", ""))[:56], 8, "#0f172a", True)
             pdf.text(46, yrow - 11, f"Nivel: {risk.get('level', '')} | Responsable: {risk.get('owner', '')}", 7, "#64748b")
-        pdf.text(46, 70, f"Decisiones pendientes sugeridas: {max(1, len(risks[:3]))}", 8, "#2563eb", True)
+        pdf.text(46, 70, f"Decisiones pendientes sugeridas: {max(1, len(risks[:3]))}", 8, "#2764E8", True)
 
         pdf.rect(424, 56, 386, 178, fill="#ffffff", stroke="#dbe4f0")
-        pdf.rect(424, 211, 386, 23, fill="#0f2f69")
+        pdf.rect(424, 211, 386, 23, fill="#171A21")
         pdf.text(436, 219, "Recomendaciones IA y foco del comité", 11, "#ffffff", True)
         if recommendations:
             for index, rec in enumerate(recommendations):
@@ -1017,27 +1017,27 @@ def build_router(ctx) -> APIRouter:
             pdf.text(438, 193, "• Mantener seguimiento integrado de ruta crítica, presupuesto, riesgos y entregables.", 8, "#334155")
 
         pdf.add_page()
-        header("Informe Detallado del Proyecto", "Módulos Proyecta360: presupuesto, trabajo ágil, entregables, evidencias y cronograma")
-        kpi_card(32, 482, 150, "Trabajo ágil", str(len(stories)), "ítems registrados", "#2563eb")
+        header("Informe Detallado del Proyecto", "Módulos PRUNIN: presupuesto, trabajo ágil, entregables, evidencias y cronograma")
+        kpi_card(32, 482, 150, "Trabajo ágil", str(len(stories)), "ítems registrados", "#2764E8")
         linked = len([story for story in stories if story.get("master_task_id")])
-        kpi_card(194, 482, 150, "Trazabilidad", f"{linked}/{len(stories)}", "ítems vinculados", "#1e40af")
+        kpi_card(194, 482, 150, "Trazabilidad", f"{linked}/{len(stories)}", "ítems vinculados", "#171A21")
         kpi_card(356, 482, 150, "Entregables", str(len(data["deliverables"])), "productos", "#15803d")
         kpi_card(518, 482, 150, "Evidencias", str(len(data["evidences"])), "archivos", "#7c3aed")
         kpi_card(680, 482, 130, "Recursos", str(len(data["resources"])), "personas/equipos", "#0f766e")
 
         pdf.rect(32, 300, 376, 150, fill="#ffffff", stroke="#dbe4f0")
-        pdf.rect(32, 427, 376, 23, fill="#0f2f69")
+        pdf.rect(32, 427, 376, 23, fill="#171A21")
         pdf.text(44, 435, "Cronograma principal", 11, "#ffffff", True)
         for index, task in enumerate(tasks[:7]):
             yrow = 407 - index * 18
             progress = max(0, min(100, float(task.get("progress") or 0)))
             pdf.text(44, yrow, str(task.get("title", ""))[:34], 7, "#0f172a", True)
             pdf.rect(224, yrow - 2, 118, 7, fill="#dbeafe")
-            pdf.rect(224, yrow - 2, 118 * progress / 100, 7, fill="#2563eb")
+            pdf.rect(224, yrow - 2, 118 * progress / 100, 7, fill="#2764E8")
             pdf.text(354, yrow, f"{progress:.0f}%", 7, "#475569", True)
 
         pdf.rect(424, 300, 386, 150, fill="#ffffff", stroke="#dbe4f0")
-        pdf.rect(424, 427, 386, 23, fill="#0f2f69")
+        pdf.rect(424, 427, 386, 23, fill="#171A21")
         pdf.text(436, 435, "Presupuesto", 11, "#ffffff", True)
         budget = max(float(m.get("budget") or 0), 1)
         spent = max(float(m.get("spent") or 0), 0)
@@ -1053,7 +1053,7 @@ def build_router(ctx) -> APIRouter:
         pdf.text(438, 333, f"Variación presupuestal: {m.get('budget_variance_pp', 0)} pp", 9, "#0f172a", True)
 
         pdf.rect(32, 70, 376, 200, fill="#ffffff", stroke="#dbe4f0")
-        pdf.rect(32, 247, 376, 23, fill="#0f2f69")
+        pdf.rect(32, 247, 376, 23, fill="#171A21")
         pdf.text(44, 255, "Entregables y evidencias", 11, "#ffffff", True)
         for index, item in enumerate(deliverables[:6]):
             yrow = 227 - index * 22
@@ -1062,7 +1062,7 @@ def build_router(ctx) -> APIRouter:
         pdf.text(46, 83, f"Evidencias recientes: {', '.join(str(e.get('original_filename', ''))[:18] for e in evidences[:3])}", 7, "#475569")
 
         pdf.rect(424, 70, 386, 200, fill="#ffffff", stroke="#dbe4f0")
-        pdf.rect(424, 247, 386, 23, fill="#0f2f69")
+        pdf.rect(424, 247, 386, 23, fill="#171A21")
         pdf.text(436, 255, "Trabajo ágil", 11, "#ffffff", True)
         status_counts: Dict[str, int] = {}
         for story in stories:
@@ -1070,7 +1070,7 @@ def build_router(ctx) -> APIRouter:
             status_counts[status] = status_counts.get(status, 0) + 1
         total = max(len(stories), 1)
         x = 438
-        colors = ["#16a34a", "#2563eb", "#f59e0b", "#dc2626", "#64748b"]
+        colors = ["#16a34a", "#2764E8", "#f59e0b", "#dc2626", "#64748b"]
         for index, (status, count) in enumerate(list(status_counts.items())[:5]):
             w = 300 * count / total
             pdf.rect(x, 210, w, 16, fill=colors[index])
@@ -1089,7 +1089,7 @@ def build_router(ctx) -> APIRouter:
             data = export_project_data(conn, project_id)
             add_history(conn, project_id, "Exportación", data["project"]["name"], "JSON generado", "Descarga completa del proyecto")
             conn.commit()
-        filename = f"proyecta360_proyecto_{project_id}.json"
+        filename = f"prunin_proyecto_{project_id}.json"
         return Response(
             content=dumps(data),
             media_type="application/json; charset=utf-8",
@@ -1104,7 +1104,7 @@ def build_router(ctx) -> APIRouter:
             content = export_project_csv_content(data)
             add_history(conn, project_id, "Exportación", data["project"]["name"], "CSV generado", "Archivo compatible con importación CSV")
             conn.commit()
-        filename = f"proyecta360_proyecto_{project_id}.csv"
+        filename = f"prunin_proyecto_{project_id}.csv"
         return Response(
             content="\ufeff" + content,
             media_type="text/csv; charset=utf-8",
@@ -1126,15 +1126,15 @@ def build_router(ctx) -> APIRouter:
         def esc(x: Any) -> str:
             return html.escape(str(x if x is not None else ""))
         html_doc = f"""<!doctype html><html lang='es'><head><meta charset='utf-8'><title>Reporte {esc(p['name'])}</title>
-        <style>body{{font-family:Arial,sans-serif;margin:32px;color:#0f172a}}.card{{border:1px solid #e2e8f0;border-radius:14px;padding:16px;margin:12px 0}}h1{{color:#2563eb}}table{{border-collapse:collapse;width:100%;margin-top:10px}}td,th{{border-bottom:1px solid #e2e8f0;padding:8px;text-align:left}}.pill{{display:inline-block;padding:5px 10px;border-radius:999px;background:#eff6ff;color:#2563eb;font-weight:700}}</style></head><body>
-        <h1>Reporte ejecutivo Proyecta360</h1><h2>{esc(p['name'])}</h2><p>{esc(p.get('description',''))}</p>
+        <style>body{{font-family:Arial,sans-serif;margin:32px;color:#0f172a}}.card{{border:1px solid #e2e8f0;border-radius:14px;padding:16px;margin:12px 0}}h1{{color:#2764E8}}table{{border-collapse:collapse;width:100%;margin-top:10px}}td,th{{border-bottom:1px solid #e2e8f0;padding:8px;text-align:left}}.pill{{display:inline-block;padding:5px 10px;border-radius:999px;background:#eff6ff;color:#2764E8;font-weight:700}}</style></head><body>
+        <h1>Reporte ejecutivo PRUNIN</h1><h2>{esc(p['name'])}</h2><p>{esc(p.get('description',''))}</p>
         <div class='card'><span class='pill'>{esc(m['health'])}</span><p><b>Avance:</b> {esc(m['progress'])}% | <b>Presupuesto ejecutado:</b> {esc(m['spent'])} de {esc(m['budget'])} {esc(p['currency'])} | <b>Riesgos altos:</b> {esc(m['high_risks'])}</p></div>
         <div class='card'><h3>Recomendaciones</h3><ul>{''.join(f'<li>{esc(x)}</li>' for x in intel.get('recommendations', []))}</ul></div>
         <div class='card'><h3>Actividades principales</h3><table><tr><th>Actividad</th><th>Responsable</th><th>Avance</th><th>Fecha fin</th></tr>{''.join(f'<tr><td>{esc(t["title"])}</td><td>{esc(t["owner"])}</td><td>{esc(t["progress"])}%</td><td>{esc(t["end_date"])}</td></tr>' for t in tasks)}</table></div>
         <div class='card'><h3>Riesgos</h3><table><tr><th>Riesgo</th><th>Nivel</th><th>Responsable</th><th>Respuesta</th></tr>{''.join(f'<tr><td>{esc(r["title"])}</td><td>{esc(r["level"])}</td><td>{esc(r["owner"])}</td><td>{esc(r["response"])}</td></tr>' for r in risks)}</table></div>
         <div class='card'><h3>Entregables y productos</h3><table><tr><th>Nombre</th><th>Tipo</th><th>Estado</th><th>Fecha</th></tr>{''.join(f'<tr><td>{esc(d["name"])}</td><td>{esc(d["deliverable_type"])}</td><td>{esc(d["status"])}</td><td>{esc(d["due_date"])}</td></tr>' for d in deliverables)}</table></div>
-        <p><small>Generado automáticamente por Proyecta360 · {esc(datetime.utcnow().isoformat())}</small></p></body></html>"""
-        filename = f"proyecta360_reporte_{project_id}.html"
+        <p><small>Generado automáticamente por PRUNIN · {esc(datetime.utcnow().isoformat())}</small></p></body></html>"""
+        filename = f"prunin_reporte_{project_id}.html"
         return Response(
             content=html_doc,
             media_type="text/html; charset=utf-8",
@@ -1149,7 +1149,7 @@ def build_router(ctx) -> APIRouter:
             content = build_project_report_pdf(data)
             add_history(conn, project_id, "Exportación", data["project"]["name"], "PDF generado", "Informe ejecutivo profesional descargado")
             conn.commit()
-        filename = f"proyecta360_informe_proyecto_{project_id}.pdf"
+        filename = f"prunin_informe_proyecto_{project_id}.pdf"
         return Response(
             content=content,
             media_type="application/pdf",

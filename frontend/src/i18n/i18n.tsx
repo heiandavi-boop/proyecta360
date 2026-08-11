@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+﻿import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
 type Language = {
   code: string;
@@ -22,7 +22,7 @@ type I18nContextValue = {
   setLanguage: (language: string) => Promise<void>;
 };
 
-const LANGUAGE_KEY = "proyecta360_language";
+const LANGUAGE_KEY = "prunin_language";
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 

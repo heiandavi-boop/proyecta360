@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import sqlite3
 from datetime import date, timedelta
@@ -13,7 +13,7 @@ RiskLevelFn = Callable[[int, int, Optional[Dict[str, Any]]], str]
 
 
 def ensure_proyecta360_lac_strategic_framework(conn: sqlite3.Connection) -> None:
-    rows = all_rows(conn, "SELECT id, parameters_json FROM projects WHERE name IN (?, ?)", ("Proyecta360 LAC", "Proyecta360LAC"))
+    rows = all_rows(conn, "SELECT id, parameters_json FROM projects WHERE name IN (?, ?)", ("PRUNIN LAC", "PRUNINLAC"))
     for row in rows:
         params = loads(row.get("parameters_json"), DEFAULT_PARAMETERS) or {}
         existing = params.get("strategic_framework") or {}
@@ -37,7 +37,7 @@ def ensure_mvp_data(conn: sqlite3.Connection, add_history: HistoryFn) -> None:
                    SET name = ?, description = ?, sponsor = ?, project_manager = ?, methodology = ?
                    WHERE id = ?""",
                 (
-                    "Proyecta360 LAC",
+                    "PRUNIN LAC",
                     "Plataforma para la gesti\u00f3n integral de proyectos financiados y productos de conocimiento en investigaci\u00f3n, innovaci\u00f3n y cooperaci\u00f3n internacional.",
                     "Universidad / Cooperante LAC",
                     "Alejandra Trujillo",
@@ -116,7 +116,7 @@ def seed_database(conn: sqlite3.Connection, add_history: HistoryFn, risk_level: 
         """INSERT INTO projects (name, description, sponsor, project_manager, start_date, end_date, methodology, status, budget, currency, parameters_json)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
-            "Proyecta360 LAC",
+            "PRUNIN LAC",
             "Plataforma para la gesti\u00f3n integral de proyectos financiados y productos de conocimiento en investigaci\u00f3n, innovaci\u00f3n y cooperaci\u00f3n internacional.",
             "Universidad / Cooperante LAC",
             "Alejandra Trujillo",
@@ -131,12 +131,12 @@ def seed_database(conn: sqlite3.Connection, add_history: HistoryFn, risk_level: 
     )
     project_id = cur.lastrowid
     people = [
-        ("Alejandra Trujillo", "Gestora del proyecto", "alejandra@proyecta360.ai", 80),
-        ("Investigador principal", "Componente cientifico", "investigacion@proyecta360.ai", 75),
-        ("Equipo tecnologico", "Scrum / desarrollo", "tech@proyecta360.ai", 90),
-        ("Administrador de fondos", "Finanzas y cooperacion", "fondos@proyecta360.ai", 70),
-        ("Equipo divulgacion", "Productos de conocimiento", "divulgacion@proyecta360.ai", 85),
-        ("PMO regional", "Gobierno y seguimiento", "pmo@proyecta360.ai", 60),
+        ("Alejandra Trujillo", "Gestora del proyecto", "alejandra@prunin.ai", 80),
+        ("Investigador principal", "Componente cientifico", "investigacion@prunin.ai", 75),
+        ("Equipo tecnologico", "Scrum / desarrollo", "tech@prunin.ai", 90),
+        ("Administrador de fondos", "Finanzas y cooperacion", "fondos@prunin.ai", 70),
+        ("Equipo divulgacion", "Productos de conocimiento", "divulgacion@prunin.ai", 85),
+        ("PMO regional", "Gobierno y seguimiento", "pmo@prunin.ai", 60),
     ]
     conn.executemany("INSERT INTO resources (project_id, name, role, email, capacity) VALUES (?, ?, ?, ?, ?)", [(project_id, *p) for p in people])
 
@@ -224,7 +224,7 @@ def seed_database(conn: sqlite3.Connection, add_history: HistoryFn, risk_level: 
     conn.executemany("INSERT INTO risks (project_id, title, probability, impact, level, response, status, owner) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [(project_id, title, prob, impact, risk_level(prob, impact, None), response, status, owner) for title, prob, impact, response, status, owner in risks])
     deliverables = [
         (component_ids[0], "Protocolo de investigacion validado", "Producto de conocimiento", "En revision", "Investigador principal", start + timedelta(days=35), "https://evidencias.local/protocolo", "Documento base del componente cientifico."),
-        (component_ids[1], "MVP web Proyecta360", "Entregable", "En progreso", "Equipo tecnologico", start + timedelta(days=80), "https://evidencias.local/mvp", "Plataforma web con gestion hibrida, riesgos y reportes."),
+        (component_ids[1], "MVP web PRUNIN", "Entregable", "En progreso", "Equipo tecnologico", start + timedelta(days=80), "https://evidencias.local/mvp", "Plataforma web con gestion hibrida, riesgos y reportes."),
         (component_ids[2], "Matriz de presupuesto y financiador", "Evidencia", "En progreso", "Administrador de fondos", start + timedelta(days=45), "https://evidencias.local/presupuesto", "Soporte para administracion de fondos del proyecto."),
         (component_ids[3], "Resumen ejecutivo mensual", "Producto de conocimiento", "Planeado", "Equipo divulgacion", start + timedelta(days=60), "", "Informe para financiadores y direccion."),
     ]
@@ -233,6 +233,6 @@ def seed_database(conn: sqlite3.Connection, add_history: HistoryFn, risk_level: 
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         [(project_id, component_id, name, dtype, status, owner, due.isoformat(), url, desc) for component_id, name, dtype, status, owner, due, url, desc in deliverables],
     )
-    add_history(conn, project_id, "Proyecto", "Proyecta360 LAC", "Creado", "Seed alineado al MVP: componentes, fondos, riesgos, hitos y productos de conocimiento.", "Sistema")
+    add_history(conn, project_id, "Proyecto", "PRUNIN LAC", "Creado", "Seed alineado al MVP: componentes, fondos, riesgos, hitos y productos de conocimiento.", "Sistema")
     add_history(conn, project_id, "Documento", "MVP.docx", "Analizado", "Dolor: informacion dispersa; respuesta: fuente unica de avance, riesgos, presupuesto, hitos y resultados.", "Sistema")
     conn.commit()

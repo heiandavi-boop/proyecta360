@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
+﻿import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
 
 import type { StoryIn } from "@contracts/types";
 
@@ -48,8 +48,8 @@ function taskWbsCodes(tasks: Task[]) {
 
 export function ScrumView({ busy = false, canWrite = true, data, onCreateStory, onUpdateStory }: ScrumViewProps) {
   const { t } = useI18n();
-  const statusStorageKey = `proyecta360.scrum.statuses.${data.current_project.id}`;
-  const statusOrderStorageKey = `proyecta360.scrum.statusOrder.${data.current_project.id}`;
+  const statusStorageKey = `prunin.scrum.statuses.${data.current_project.id}`;
+  const statusOrderStorageKey = `prunin.scrum.statusOrder.${data.current_project.id}`;
   const [customStatuses, setCustomStatuses] = useState<string[]>([]);
   const [statusOrder, setStatusOrder] = useState<string[]>([]);
   const [newStatus, setNewStatus] = useState("");
@@ -131,14 +131,14 @@ export function ScrumView({ busy = false, canWrite = true, data, onCreateStory, 
 
   function onDragStart(event: DragEvent<HTMLElement>, storyId: number) {
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("application/x-proyecta360-story", String(storyId));
+    event.dataTransfer.setData("application/x-prunin-story", String(storyId));
     setDraggingStoryId(storyId);
   }
 
   function onColumnDragStart(event: DragEvent<HTMLElement>, status: string) {
     event.stopPropagation();
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("application/x-proyecta360-column", status);
+    event.dataTransfer.setData("application/x-prunin-column", status);
     setDraggingStatus(status);
   }
 
@@ -159,12 +159,12 @@ export function ScrumView({ busy = false, canWrite = true, data, onCreateStory, 
 
   async function onDropStory(event: DragEvent<HTMLElement>, status: string) {
     event.preventDefault();
-    if (Array.from(event.dataTransfer.types).includes("application/x-proyecta360-column")) {
+    if (Array.from(event.dataTransfer.types).includes("application/x-prunin-column")) {
       onDropColumn(status);
       return;
     }
     setDragOverStatus("");
-    const storyId = Number(event.dataTransfer.getData("application/x-proyecta360-story") || draggingStoryId);
+    const storyId = Number(event.dataTransfer.getData("application/x-prunin-story") || draggingStoryId);
     const story = data.stories.find((item) => item.id === storyId);
     setDraggingStoryId(null);
     if (!canWrite || !story || story.status === status || busy) return;

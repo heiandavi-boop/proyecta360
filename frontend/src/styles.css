@@ -1,14 +1,16 @@
-:root {
+﻿:root {
   --bg: #f3f6fb;
   --panel: #ffffff;
   --line: #dce6f2;
-  --ink: #0b1f3a;
+  --ink: #171A21;
   --muted: #5d6f8a;
-  --blue: #2563eb;
+  --blue: #2764E8;
+  --violet: #7654E8;
+  --graphite: #171A21;
   --green: #20b36b;
   --amber: #f59e0b;
   --red: #dc2626;
-  --sidebar: #0f1f36;
+  --sidebar: #171A21;
   font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
   color: var(--ink);
   background: var(--bg);
@@ -64,7 +66,10 @@ button:disabled {
 }
 
 .eyebrow {
-  color: var(--blue);
+  background: linear-gradient(90deg, var(--graphite), var(--blue) 48%, var(--violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   font-weight: 900;
   letter-spacing: .12em;
   text-transform: uppercase;
@@ -148,10 +153,24 @@ textarea {
 }
 
 .sidebar .brand {
-  color: #fff;
-  font-size: 23px;
-  padding: 2px 8px 14px;
+  background: linear-gradient(90deg, #ffffff 0 18%, #2764E8 42%, #7654E8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 26px;
+  letter-spacing: .08em;
+  padding: 2px 8px 4px;
   border-bottom: 1px solid rgba(255, 255, 255, .12);
+}
+
+.sidebar .brand::after {
+  content: "PROJECT INTELLIGENCE";
+  display: block;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, .78);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .24em;
 }
 
 .topbar {
@@ -275,7 +294,7 @@ textarea {
   top: 0;
   width: 10px;
   height: 8px;
-  background: #1d4ed8;
+  background: #2764E8;
 }
 
 .flag-zh {
@@ -302,7 +321,7 @@ textarea {
   top: 5px;
   width: 5px;
   height: 5px;
-  border: 1px solid #1d4ed8;
+  border: 1px solid #2764E8;
   border-radius: 50%;
 }
 
@@ -398,9 +417,9 @@ textarea {
   align-items: center;
   justify-content: center;
   min-height: 38px;
-  border: 1px solid #1d4ed8;
+  border: 1px solid #2764E8;
   border-radius: 8px;
-  background: linear-gradient(180deg, #2563eb, #1d4ed8);
+  background: linear-gradient(135deg, #2764E8, #7654E8);
   color: #fff;
   font-size: 13px;
   font-weight: 950;
@@ -409,7 +428,7 @@ textarea {
 }
 
 .report-action:hover:not(:disabled) {
-  background: linear-gradient(180deg, #1d4ed8, #1e40af);
+  background: linear-gradient(135deg, #171A21, #2764E8 50%, #7654E8);
 }
 
 .report-action:disabled {
@@ -856,7 +875,7 @@ textarea {
 
 .badge.approved {
   background: #dbeafe;
-  color: #1d4ed8;
+  color: #2764E8;
 }
 
 .badge.warning {
@@ -1014,7 +1033,7 @@ textarea {
   border: 1px solid #bfdbfe;
   border-radius: 8px;
   background: #eff6ff;
-  color: #1e40af;
+  color: #171A21;
   font-size: 12px;
   font-weight: 900;
   padding: 9px 11px;
@@ -1263,7 +1282,7 @@ textarea {
   z-index: 1;
   height: 20px;
   min-width: 10px;
-  border: 1px solid #1d4ed8;
+  border: 1px solid #2764E8;
   border-radius: 5px;
   background: linear-gradient(180deg, #93c5fd, #60a5fa);
   box-shadow: 0 3px 8px rgba(37, 99, 235, .25), inset 0 -2px 0 rgba(30, 64, 175, .18);
@@ -1273,15 +1292,15 @@ textarea {
 .gantt-bar em {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, #1d4ed8, #2563eb);
+  background: linear-gradient(90deg, #2764E8, #2764E8);
 }
 
 .gantt-bar.is-summary {
   top: 7px;
   height: 24px;
-  border-color: #0f2f69;
+  border-color: #171A21;
   border-radius: 4px;
-  background: linear-gradient(180deg, #1e3a8a, #0f2f69);
+  background: linear-gradient(180deg, #171A21, #171A21);
   box-shadow: 0 4px 10px rgba(15, 47, 105, .3);
 }
 
@@ -1292,7 +1311,7 @@ textarea {
   bottom: -1px;
   width: 0;
   height: 0;
-  border-top: 8px solid #0f2f69;
+  border-top: 8px solid #171A21;
 }
 
 .gantt-bar.is-summary::before {
@@ -1648,9 +1667,9 @@ textarea {
   height: 18px;
   min-width: 12px;
   overflow: hidden;
-  border: 1px solid #1d4ed8;
+  border: 1px solid #2764E8;
   border-radius: 5px;
-  background: linear-gradient(180deg, #93c5fd, #3b82f6);
+  background: linear-gradient(180deg, #93c5fd, #2764E8);
   box-shadow: 0 2px 5px rgba(37, 99, 235, .18);
 }
 
@@ -1663,13 +1682,13 @@ textarea {
 .executive-bar.is-summary {
   top: 14px;
   height: 22px;
-  border-color: #0f2f69;
-  background: linear-gradient(180deg, #1e3a8a, #0f2f69);
+  border-color: #171A21;
+  background: linear-gradient(180deg, #171A21, #171A21);
 }
 
 .executive-bar.is-critical {
-  border-color: #0f2f69;
-  background: linear-gradient(180deg, #3b82f6, #1e3a8a);
+  border-color: #171A21;
+  background: linear-gradient(180deg, #2764E8, #171A21);
 }
 
 .executive-bar.is-done {
@@ -2058,7 +2077,7 @@ textarea {
   flex: 0 0 auto;
   border-radius: 999px;
   background: #eef6ff;
-  color: #1d4ed8;
+  color: #2764E8;
   font-size: 10px;
   font-weight: 900;
   line-height: 1;
@@ -2068,9 +2087,9 @@ textarea {
 .critical-path-badge {
   flex: 0 0 auto;
   border-radius: 999px;
-  border: 1px solid #1e3a8a;
+  border: 1px solid #171A21;
   background: #eff6ff;
-  color: #0f2f69;
+  color: #171A21;
   font-size: 10px;
   font-weight: 950;
   line-height: 1;
@@ -2120,7 +2139,7 @@ textarea {
 
 .summary-glyph {
   background: #dbeafe;
-  color: #1d4ed8 !important;
+  color: #2764E8 !important;
 }
 
 .milestone-glyph {
@@ -2150,9 +2169,9 @@ textarea {
   z-index: 1;
   height: 16px;
   min-width: 12px;
-  border: 1px solid #1d4ed8;
+  border: 1px solid #2764E8;
   border-radius: 5px;
-  background: linear-gradient(180deg, #93c5fd, #3b82f6);
+  background: linear-gradient(180deg, #93c5fd, #2764E8);
   box-shadow: 0 2px 5px rgba(37, 99, 235, .18);
   overflow: hidden;
 }
@@ -2173,13 +2192,13 @@ textarea {
 }
 
 .gantt-bar.is-critical {
-  border-color: #0f2f69;
-  background: linear-gradient(180deg, #3b82f6, #1e3a8a);
+  border-color: #171A21;
+  background: linear-gradient(180deg, #2764E8, #171A21);
 }
 
 .gantt-bar.is-late {
   border-color: #dc2626;
-  background: linear-gradient(180deg, #93c5fd, #3b82f6);
+  background: linear-gradient(180deg, #93c5fd, #2764E8);
   box-shadow: 0 0 0 2px rgba(220, 38, 38, .14), 0 2px 5px rgba(37, 99, 235, .18);
 }
 
@@ -2196,9 +2215,9 @@ textarea {
 .gantt-bar.is-summary {
   top: 9px;
   height: 22px;
-  border-color: #0f2f69;
+  border-color: #171A21;
   border-radius: 4px;
-  background: linear-gradient(180deg, #1e3a8a, #0f2f69);
+  background: linear-gradient(180deg, #171A21, #171A21);
   box-shadow: 0 3px 8px rgba(15, 47, 105, .22);
 }
 
@@ -2295,12 +2314,12 @@ textarea {
 
 .gantt-split .late-row .gantt-bar,
 .gantt-split .critical-row .gantt-bar {
-  background: linear-gradient(180deg, #93c5fd, #3b82f6);
+  background: linear-gradient(180deg, #93c5fd, #2764E8);
 }
 
 .gantt-split .critical-row .gantt-bar {
-  border-color: #0f2f69;
-  background: linear-gradient(180deg, #3b82f6, #1e3a8a);
+  border-color: #171A21;
+  background: linear-gradient(180deg, #2764E8, #171A21);
 }
 
 .gantt-split .late-row .gantt-bar {
@@ -2626,7 +2645,7 @@ textarea {
 .story-card .story-plan-link {
   border-radius: 6px;
   background: #eef6ff;
-  color: #1d4ed8;
+  color: #2764E8;
   line-height: 1.35;
   padding: 5px 7px;
 }
@@ -2926,7 +2945,7 @@ textarea {
 }
 
 .ai-action-view {
-  color: #1d4ed8;
+  color: #2764E8;
 }
 
 .ai-action-approve {
@@ -2944,7 +2963,7 @@ textarea {
 .ai-action-apply {
   border-color: #bfdbfe;
   background: #eff6ff;
-  color: #1d4ed8;
+  color: #2764E8;
 }
 
 .ai-action-apply:disabled {

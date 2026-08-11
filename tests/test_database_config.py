@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 from proyecta360 import main as main_module
 from proyecta360.core.database import connect, database_backend_from_url
@@ -31,8 +31,8 @@ def test_sqlite_schema_creation(tmp_path):
 
 
 def test_postgres_database_url_is_recognized():
-    assert database_backend_from_url("postgresql://user:pass@localhost:5432/proyecta360") == "postgresql"
-    assert database_backend_from_url("postgres://user:pass@localhost:5432/proyecta360") == "postgresql"
+    assert database_backend_from_url("postgresql://user:pass@localhost:5432/prunin") == "postgresql"
+    assert database_backend_from_url("postgres://user:pass@localhost:5432/prunin") == "postgresql"
 
 
 def test_postgres_schema_avoids_sqlite_only_autoincrement():
@@ -52,7 +52,7 @@ def test_main_db_uses_database_url_when_configured(monkeypatch, tmp_path):
         return object()
 
     monkeypatch.setattr(main_module, "DB_PATH", tmp_path / "ignored.db")
-    monkeypatch.setattr(main_module, "DATABASE_URL", "postgresql://user:pass@localhost:5432/proyecta360")
+    monkeypatch.setattr(main_module, "DATABASE_URL", "postgresql://user:pass@localhost:5432/prunin")
     monkeypatch.setattr(main_module, "connect", fake_connect)
 
     main_module.db()

@@ -1,7 +1,7 @@
-import { API_ENDPOINTS } from "@contracts/endpoints";
+﻿import { API_ENDPOINTS } from "@contracts/endpoints";
 import type { ApiOperationMap } from "@contracts/types";
 
-const AUTH_TOKEN_KEY = "proyecta360_token";
+const AUTH_TOKEN_KEY = "prunin_token";
 
 type EndpointName = keyof ApiOperationMap;
 type RequestOf<T extends EndpointName> = ApiOperationMap[T]["request"];
@@ -90,7 +90,7 @@ export async function apiRequest<T extends EndpointName>(
   const definition = API_ENDPOINTS[endpoint];
   const isFormData = options.body instanceof FormData;
   const headers: Record<string, string> = {
-    "X-Locale": localStorage.getItem("proyecta360_language") || "es",
+    "X-Locale": localStorage.getItem("prunin_language") || "es",
     ...options.headers
   };
   if (!isFormData) headers["Content-Type"] = "application/json";
@@ -114,7 +114,7 @@ export async function login(body: LoginRequest): Promise<LoginResponse> {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Locale": localStorage.getItem("proyecta360_language") || "es"
+      "X-Locale": localStorage.getItem("prunin_language") || "es"
     },
     body: JSON.stringify(body)
   });
@@ -132,7 +132,7 @@ export async function logout(): Promise<void> {
 
 export async function downloadProjectReportPdf(projectId: number): Promise<void> {
   const headers: Record<string, string> = {
-    "X-Locale": localStorage.getItem("proyecta360_language") || "es"
+    "X-Locale": localStorage.getItem("prunin_language") || "es"
   };
   const authToken = token();
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
@@ -144,7 +144,7 @@ export async function downloadProjectReportPdf(projectId: number): Promise<void>
   const blob = await response.blob();
   const disposition = response.headers.get("Content-Disposition") || "";
   const match = disposition.match(/filename="?([^"]+)"?/i);
-  const filename = match?.[1] || `proyecta360_informe_proyecto_${projectId}.pdf`;
+  const filename = match?.[1] || `prunin_informe_proyecto_${projectId}.pdf`;
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

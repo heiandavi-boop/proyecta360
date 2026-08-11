@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager
@@ -32,12 +32,40 @@ DEFAULT_PARAMETERS = app_config.DEFAULT_PARAMETERS
 SUPPORTED_CURRENCIES = app_config.SUPPORTED_CURRENCIES
 DEPENDENCY_TYPES = app_config.DEPENDENCY_TYPES
 TOKEN_TTL_MINUTES = app_config.ACCESS_TOKEN_EXPIRE_MINUTES
-DEFAULT_ADMIN_PASSWORD = os.getenv("PROYECTA360_ADMIN_PASSWORD", "admin123")
-DEFAULT_PM_PASSWORD = os.getenv("PROYECTA360_PM_PASSWORD", "demo123")
-DEFAULT_READONLY_PASSWORD = os.getenv("PROYECTA360_READONLY_PASSWORD", "consulta123")
+DEFAULT_ADMIN_PASSWORD = os.getenv("PRUNIN_ADMIN_PASSWORD", os.getenv("PROYECTA" + "360_ADMIN_PASSWORD", "admin123"))
+DEFAULT_PM_PASSWORD = os.getenv("PRUNIN_PM_PASSWORD", os.getenv("PROYECTA" + "360_PM_PASSWORD", "demo123"))
+DEFAULT_READONLY_PASSWORD = os.getenv("PRUNIN_READONLY_PASSWORD", os.getenv("PROYECTA" + "360_READONLY_PASSWORD", "consulta123"))
 
 def db() -> Any:
     return connect(DB_PATH, DATABASE_URL)
+
+def apply_prunin_rebrand(conn: Any) -> None:
+    replacements = [
+        ("Proyecta" + "360", "PRUNIN"),
+        ("proyecta" + "360.ai", "prunin.ai"),
+        ("proyecta" + "360.local", "prunin.local"),
+    ]
+    text_columns = {
+        "projects": ["name", "description", "project_manager", "sponsor", "methodology", "status", "parameters_json"],
+        "users": ["email", "name", "role"],
+        "resources": ["name", "role", "email"],
+        "components": ["name", "methodology", "owner", "objective"],
+        "tasks": ["title", "description", "owner", "status", "phase"],
+        "risks": ["title", "level", "response", "mitigation_plan", "contingency_plan", "status", "owner"],
+        "deliverables": ["name", "deliverable_type", "status", "owner", "evidence_url", "description"],
+        "stories": ["title", "description", "work_type", "status", "assignee", "priority", "blocked_reason", "labels_json"],
+        "sprints": ["name", "goal", "status", "cycle_type", "close_summary"],
+        "conversation_threads": ["title", "context_type", "category", "status", "created_by"],
+        "conversation_messages": ["author", "message", "mentions", "evidence_url", "message_type"],
+        "change_log": ["entity_type", "entity_name", "action", "notes", "actor"],
+    }
+    for table, columns in text_columns.items():
+        existing_columns = {row["name"] for row in all_rows(conn, f"PRAGMA table_info({table})")}
+        for column in columns:
+            if column not in existing_columns:
+                continue
+            for old, new in replacements:
+                conn.execute(f"UPDATE {table} SET {column} = REPLACE({column}, ?, ?) WHERE {column} LIKE ?", (old, new, f"%{old}%"))
 
 
 def user_from_authorization(conn: Any, authorization: Optional[str]) -> Optional[Dict[str, Any]]:
@@ -69,14 +97,15 @@ def init_db() -> None:
     with db() as conn:
         create_schema(conn)
         ensure_schema_columns(conn)
+        apply_prunin_rebrand(conn)
         ensure_proyecta360_lac_strategic_framework(conn)
         if not one(conn, "SELECT id FROM users LIMIT 1"):
             conn.executemany(
                 "INSERT INTO users (name, email, role, password_hash) VALUES (?, ?, ?, ?)",
                 [
-                    ("Administrador PMO", "admin@proyecta360.local", "Administrador", hash_password(DEFAULT_ADMIN_PASSWORD)),
-                    ("Alejandra Trujillo", "alejandra@proyecta360.ai", "Project Manager", hash_password(DEFAULT_PM_PASSWORD)),
-                    ("Equipo Consulta", "consulta@proyecta360.local", "Consulta", hash_password(DEFAULT_READONLY_PASSWORD)),
+                    ("Administrador PMO", "admin@prunin.local", "Administrador", hash_password(DEFAULT_ADMIN_PASSWORD)),
+                    ("Alejandra Trujillo", "alejandra@prunin.ai", "Project Manager", hash_password(DEFAULT_PM_PASSWORD)),
+                    ("Equipo Consulta", "consulta@prunin.local", "Consulta", hash_password(DEFAULT_READONLY_PASSWORD)),
                 ],
             )
         UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
