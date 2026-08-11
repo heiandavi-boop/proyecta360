@@ -650,6 +650,12 @@ export interface ApiOperationMap {
     request: undefined;
     response: Record<string, unknown>;
   };
+  "export_project_report_pdf_api_projects__project_id__report_pdf_get": {
+    method: "GET";
+    path: "/api/projects/{project_id}/report/pdf";
+    request: undefined;
+    response: unknown;
+  };
   "linkable_tasks_api_projects__project_id__scrum_linkable_tasks_get": {
     method: "GET";
     path: "/api/projects/{project_id}/scrum/linkable-tasks";

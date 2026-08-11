@@ -4,6 +4,7 @@ import csv
 import html
 import io
 import sqlite3
+import textwrap
 from datetime import date, datetime
 from typing import Any, Dict, List, Optional
 
@@ -821,6 +822,264 @@ def build_router(ctx) -> APIRouter:
         writer.writeheader()
         writer.writerows(rows)
         return output.getvalue()
+
+    class PdfCanvas:
+        def __init__(self) -> None:
+            self.width = 842
+            self.height = 595
+            self.pages: List[bytes] = []
+            self.ops: List[bytes] = []
+
+        def add_page(self) -> None:
+            if self.ops:
+                self.pages.append(b"\n".join(self.ops))
+            self.ops = []
+
+        def _num(self, value: float) -> str:
+            return f"{value:.2f}".rstrip("0").rstrip(".")
+
+        def _color(self, color: str) -> str:
+            color = color.strip("#")
+            r = int(color[0:2], 16) / 255
+            g = int(color[2:4], 16) / 255
+            b = int(color[4:6], 16) / 255
+            return f"{r:.3f} {g:.3f} {b:.3f}"
+
+        def raw(self, command: str) -> None:
+            self.ops.append(command.encode("latin-1", "replace"))
+
+        def rect(self, x: float, y: float, w: float, h: float, fill: str = "", stroke: str = "", radius: float = 0) -> None:
+            if radius:
+                # Rounded cards are approximated with clean rectangular geometry to keep the PDF dependency-free.
+                pass
+            commands = ["q"]
+            if fill:
+                commands.append(f"{self._color(fill)} rg")
+            if stroke:
+                commands.append(f"{self._color(stroke)} RG 0.8 w")
+            commands.append(f"{self._num(x)} {self._num(y)} {self._num(w)} {self._num(h)} re")
+            commands.append("B" if fill and stroke else "f" if fill else "S")
+            commands.append("Q")
+            self.raw("\n".join(commands))
+
+        def line(self, x1: float, y1: float, x2: float, y2: float, color: str = "#dbe4f0", width: float = 0.8) -> None:
+            self.raw(f"q {self._color(color)} RG {self._num(width)} w {self._num(x1)} {self._num(y1)} m {self._num(x2)} {self._num(y2)} l S Q")
+
+        def text(self, x: float, y: float, value: Any, size: int = 10, color: str = "#0f172a", bold: bool = False) -> None:
+            value = str(value if value is not None else "")
+            escaped = value.encode("cp1252", "replace").decode("cp1252").replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+            font = "F2" if bold else "F1"
+            self.raw(f"BT /{font} {size} Tf {self._color(color)} rg {self._num(x)} {self._num(y)} Td ({escaped}) Tj ET")
+
+        def wrapped(self, x: float, y: float, value: Any, width_chars: int, size: int = 9, color: str = "#334155", bold: bool = False, max_lines: int = 4, leading: int = 12) -> float:
+            lines = textwrap.wrap(str(value or ""), width=width_chars)[:max_lines]
+            for index, line in enumerate(lines):
+                self.text(x, y - index * leading, line, size=size, color=color, bold=bold)
+            return y - len(lines) * leading
+
+        def build(self) -> bytes:
+            if self.ops:
+                self.pages.append(b"\n".join(self.ops))
+                self.ops = []
+            objects: List[bytes] = [
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [" + b" ".join(f"{3 + i * 2} 0 R".encode() for i in range(len(self.pages))) + b"] /Count " + str(len(self.pages)).encode() + b" >>",
+            ]
+            for index, content in enumerate(self.pages):
+                page_id = 3 + index * 2
+                content_id = page_id + 1
+                objects.append(
+                    f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {self.width} {self.height}] /Resources << /Font << /F1 {3 + len(self.pages) * 2} 0 R /F2 {4 + len(self.pages) * 2} 0 R >> >> /Contents {content_id} 0 R >>".encode()
+                )
+                objects.append(b"<< /Length " + str(len(content)).encode() + b" >>\nstream\n" + content + b"\nendstream")
+            objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+            objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")
+            output = io.BytesIO()
+            output.write(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+            offsets = [0]
+            for object_id, obj in enumerate(objects, start=1):
+                offsets.append(output.tell())
+                output.write(f"{object_id} 0 obj\n".encode())
+                output.write(obj)
+                output.write(b"\nendobj\n")
+            xref = output.tell()
+            output.write(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode())
+            for offset in offsets[1:]:
+                output.write(f"{offset:010d} 00000 n \n".encode())
+            output.write(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF".encode())
+            return output.getvalue()
+
+    def money(value: Any, currency: str = "COP") -> str:
+        try:
+            amount = float(value or 0)
+        except Exception:
+            amount = 0
+        return f"{amount:,.0f}".replace(",", ".") + f" {currency}"
+
+    def percent(value: Any) -> str:
+        try:
+            return f"{float(value or 0):.1f}%"
+        except Exception:
+            return "0.0%"
+
+    def build_project_report_pdf(data: Dict[str, Any]) -> bytes:
+        pdf = PdfCanvas()
+        p, m, intel = data["project"], data["metrics"], data["intelligence"]
+        currency = p.get("currency", "COP")
+        components = data["components"][:8]
+        tasks = data["tasks"][:10]
+        risks = data["risks"][:5]
+        stories = data["stories"]
+        deliverables = data["deliverables"][:8]
+        evidences = data["evidences"][:6]
+        recommendations = intel.get("recommendations", [])[:4] if isinstance(intel, dict) else []
+
+        def header(title: str, subtitle: str = "") -> None:
+            pdf.rect(0, 548, 842, 47, fill="#0f2f69")
+            pdf.text(32, 575, title, 19, "#ffffff", True)
+            if subtitle:
+                pdf.text(34, 557, subtitle, 9, "#bfdbfe")
+            pdf.text(720, 575, "Proyecta360", 13, "#ffffff", True)
+            pdf.text(712, 558, datetime.utcnow().strftime("%Y-%m-%d"), 9, "#bfdbfe")
+
+        def kpi_card(x: float, y: float, w: float, label: str, value: str, note: str, accent: str = "#2563eb") -> None:
+            pdf.rect(x, y, w, 56, fill="#ffffff", stroke="#dbe4f0")
+            pdf.rect(x, y + 52, w, 4, fill=accent)
+            pdf.text(x + 10, y + 36, label.upper(), 7, "#64748b", True)
+            pdf.text(x + 10, y + 18, value, 16, accent, True)
+            pdf.text(x + 10, y + 7, note, 7, "#475569")
+
+        pdf.add_page()
+        header("Informe Ejecutivo del Proyecto", p.get("name", ""))
+        pdf.text(32, 526, p.get("description", ""), 10, "#334155")
+        pdf.text(32, 506, f"PM: {p.get('project_manager', 'PMO')}   |   Sponsor: {p.get('sponsor', '')}   |   Metodología: {p.get('methodology', '')}", 9, "#475569")
+        kpi_card(32, 430, 120, "Avance real", percent(m.get("progress")), f"Esperado {percent(m.get('expected_progress'))}", "#2563eb")
+        kpi_card(164, 430, 120, "Fecha fin", str(p.get("end_date", "")), "Según plan actual", "#2563eb")
+        kpi_card(296, 430, 120, "Ruta crítica", str(m.get("critical_path_tasks", 0)), "tareas", "#1e40af")
+        kpi_card(428, 430, 120, "Riesgos altos", str(m.get("high_risks", 0)), "abiertos", "#dc2626")
+        kpi_card(560, 430, 250, "Presupuesto ejecutado", money(m.get("spent"), currency), f"Total {money(m.get('budget'), currency)}", "#15803d")
+
+        pdf.rect(32, 260, 250, 145, fill="#ffffff", stroke="#dbe4f0")
+        pdf.rect(32, 382, 250, 23, fill="#0f2f69")
+        pdf.text(44, 390, "Resumen ejecutivo", 11, "#ffffff", True)
+        framework = (p.get("parameters") or {}).get("strategic_framework", {})
+        summary = framework.get("general_objective") or p.get("description") or "Proyecto estratégico con seguimiento integral de alcance, cronograma, presupuesto, riesgos y entregables."
+        y = pdf.wrapped(44, 365, summary, 45, size=8, max_lines=5)
+        pdf.text(44, y - 4, "Indicadores clave", 9, "#0f172a", True)
+        pdf.text(52, y - 20, f"• Tareas atrasadas: {m.get('delayed_tasks', 0)}", 8, "#334155")
+        pdf.text(52, y - 34, f"• Hitos en riesgo: {m.get('at_risk_milestones', 0)}", 8, "#334155")
+        pdf.text(52, y - 48, f"• Riesgos abiertos: {m.get('open_risks', 0)}", 8, "#334155")
+
+        pdf.rect(296, 260, 330, 145, fill="#ffffff", stroke="#dbe4f0")
+        pdf.rect(296, 382, 330, 23, fill="#0f2f69")
+        pdf.text(308, 390, "Plan maestro por componente", 11, "#ffffff", True)
+        chart_x, chart_y = 420, 360
+        for index, component in enumerate(components[:6]):
+            yrow = chart_y - index * 18
+            progress = max(0, min(100, float(component.get("progress") or 0)))
+            pdf.text(308, yrow, str(component.get("name", ""))[:31], 7, "#0f172a", True)
+            pdf.rect(chart_x, yrow - 2, 160, 8, fill="#dbeafe")
+            pdf.rect(chart_x, yrow - 2, 160 * progress / 100, 8, fill="#2563eb")
+            pdf.text(588, yrow, f"{progress:.0f}%", 7, "#475569", True)
+
+        pdf.rect(640, 260, 170, 145, fill="#ffffff", stroke="#dbe4f0")
+        pdf.rect(640, 382, 170, 23, fill="#0f2f69")
+        pdf.text(652, 390, "Semáforo ejecutivo", 11, "#ffffff", True)
+        lights = [
+            ("Alcance", "En control", "#16a34a"),
+            ("Tiempo", "En riesgo", "#f59e0b" if float(m.get("progress_variance_pp") or 0) < 0 else "#16a34a"),
+            ("Costo", "En control", "#16a34a"),
+            ("Riesgos", "Fuera de control" if int(m.get("high_risks") or 0) >= 3 else "En riesgo", "#dc2626" if int(m.get("high_risks") or 0) >= 3 else "#f59e0b"),
+            ("Calidad", "En control", "#16a34a"),
+        ]
+        for index, (label, status, color) in enumerate(lights):
+            yrow = 360 - index * 21
+            pdf.rect(654, yrow - 4, 8, 8, fill=color)
+            pdf.text(670, yrow - 2, label, 8, "#0f172a", True)
+            pdf.text(735, yrow - 2, status, 7, color, True)
+
+        pdf.rect(32, 56, 376, 178, fill="#ffffff", stroke="#dbe4f0")
+        pdf.rect(32, 211, 376, 23, fill="#0f2f69")
+        pdf.text(44, 219, "Riesgos y decisiones", 11, "#ffffff", True)
+        for index, risk in enumerate(risks):
+            yrow = 193 - index * 29
+            pdf.text(46, yrow, str(risk.get("title", ""))[:56], 8, "#0f172a", True)
+            pdf.text(46, yrow - 11, f"Nivel: {risk.get('level', '')} | Responsable: {risk.get('owner', '')}", 7, "#64748b")
+        pdf.text(46, 70, f"Decisiones pendientes sugeridas: {max(1, len(risks[:3]))}", 8, "#2563eb", True)
+
+        pdf.rect(424, 56, 386, 178, fill="#ffffff", stroke="#dbe4f0")
+        pdf.rect(424, 211, 386, 23, fill="#0f2f69")
+        pdf.text(436, 219, "Recomendaciones IA y foco del comité", 11, "#ffffff", True)
+        if recommendations:
+            for index, rec in enumerate(recommendations):
+                pdf.wrapped(438, 193 - index * 32, f"• {rec}", 72, size=7, max_lines=2, leading=9)
+        else:
+            pdf.text(438, 193, "• Mantener seguimiento integrado de ruta crítica, presupuesto, riesgos y entregables.", 8, "#334155")
+
+        pdf.add_page()
+        header("Informe Detallado del Proyecto", "Módulos Proyecta360: presupuesto, trabajo ágil, entregables, evidencias y cronograma")
+        kpi_card(32, 482, 150, "Trabajo ágil", str(len(stories)), "ítems registrados", "#2563eb")
+        linked = len([story for story in stories if story.get("master_task_id")])
+        kpi_card(194, 482, 150, "Trazabilidad", f"{linked}/{len(stories)}", "ítems vinculados", "#1e40af")
+        kpi_card(356, 482, 150, "Entregables", str(len(data["deliverables"])), "productos", "#15803d")
+        kpi_card(518, 482, 150, "Evidencias", str(len(data["evidences"])), "archivos", "#7c3aed")
+        kpi_card(680, 482, 130, "Recursos", str(len(data["resources"])), "personas/equipos", "#0f766e")
+
+        pdf.rect(32, 300, 376, 150, fill="#ffffff", stroke="#dbe4f0")
+        pdf.rect(32, 427, 376, 23, fill="#0f2f69")
+        pdf.text(44, 435, "Cronograma principal", 11, "#ffffff", True)
+        for index, task in enumerate(tasks[:7]):
+            yrow = 407 - index * 18
+            progress = max(0, min(100, float(task.get("progress") or 0)))
+            pdf.text(44, yrow, str(task.get("title", ""))[:34], 7, "#0f172a", True)
+            pdf.rect(224, yrow - 2, 118, 7, fill="#dbeafe")
+            pdf.rect(224, yrow - 2, 118 * progress / 100, 7, fill="#2563eb")
+            pdf.text(354, yrow, f"{progress:.0f}%", 7, "#475569", True)
+
+        pdf.rect(424, 300, 386, 150, fill="#ffffff", stroke="#dbe4f0")
+        pdf.rect(424, 427, 386, 23, fill="#0f2f69")
+        pdf.text(436, 435, "Presupuesto", 11, "#ffffff", True)
+        budget = max(float(m.get("budget") or 0), 1)
+        spent = max(float(m.get("spent") or 0), 0)
+        planned = max(float(m.get("planned_spent") or 0), 0)
+        pdf.text(438, 402, "Planeado a la fecha", 8, "#334155", True)
+        pdf.rect(560, 398, 190, 12, fill="#dbeafe")
+        pdf.rect(560, 398, min(190, 190 * planned / budget), 12, fill="#93c5fd")
+        pdf.text(760, 401, money(planned, currency), 7, "#475569")
+        pdf.text(438, 372, "Ejecutado", 8, "#334155", True)
+        pdf.rect(560, 368, 190, 12, fill="#dcfce7")
+        pdf.rect(560, 368, min(190, 190 * spent / budget), 12, fill="#16a34a")
+        pdf.text(760, 371, money(spent, currency), 7, "#475569")
+        pdf.text(438, 333, f"Variación presupuestal: {m.get('budget_variance_pp', 0)} pp", 9, "#0f172a", True)
+
+        pdf.rect(32, 70, 376, 200, fill="#ffffff", stroke="#dbe4f0")
+        pdf.rect(32, 247, 376, 23, fill="#0f2f69")
+        pdf.text(44, 255, "Entregables y evidencias", 11, "#ffffff", True)
+        for index, item in enumerate(deliverables[:6]):
+            yrow = 227 - index * 22
+            pdf.text(46, yrow, str(item.get("name", ""))[:46], 8, "#0f172a", True)
+            pdf.text(46, yrow - 10, f"{item.get('status', '')} | {item.get('owner', '')} | {item.get('due_date', '')}", 7, "#64748b")
+        pdf.text(46, 83, f"Evidencias recientes: {', '.join(str(e.get('original_filename', ''))[:18] for e in evidences[:3])}", 7, "#475569")
+
+        pdf.rect(424, 70, 386, 200, fill="#ffffff", stroke="#dbe4f0")
+        pdf.rect(424, 247, 386, 23, fill="#0f2f69")
+        pdf.text(436, 255, "Trabajo ágil", 11, "#ffffff", True)
+        status_counts: Dict[str, int] = {}
+        for story in stories:
+            status = str(story.get("status") or "Sin estado")
+            status_counts[status] = status_counts.get(status, 0) + 1
+        total = max(len(stories), 1)
+        x = 438
+        colors = ["#16a34a", "#2563eb", "#f59e0b", "#dc2626", "#64748b"]
+        for index, (status, count) in enumerate(list(status_counts.items())[:5]):
+            w = 300 * count / total
+            pdf.rect(x, 210, w, 16, fill=colors[index])
+            pdf.text(x, 192 - index * 14, f"{status}: {count}", 8, colors[index], True)
+            x += w
+        blocked = len([story for story in stories if story.get("blocked_reason")])
+        pdf.text(438, 106, f"Bloqueos activos: {blocked}", 9, "#dc2626" if blocked else "#16a34a", True)
+        pdf.text(438, 88, "Uso recomendado: revisar bloqueos y trazabilidad contra Plan Maestro en comité semanal.", 8, "#334155")
+        return pdf.build()
     
     
     @router.get("/api/projects/{project_id}/export/json")
@@ -879,6 +1138,21 @@ def build_router(ctx) -> APIRouter:
         return Response(
             content=html_doc,
             media_type="text/html; charset=utf-8",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
+
+    @router.get("/api/projects/{project_id}/report/pdf")
+    def export_project_report_pdf(project_id: int) -> Response:
+        init_db()
+        with db() as conn:
+            data = export_project_data(conn, project_id)
+            content = build_project_report_pdf(data)
+            add_history(conn, project_id, "Exportación", data["project"]["name"], "PDF generado", "Informe ejecutivo profesional descargado")
+            conn.commit()
+        filename = f"proyecta360_informe_proyecto_{project_id}.pdf"
+        return Response(
+            content=content,
+            media_type="application/pdf",
             headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
     

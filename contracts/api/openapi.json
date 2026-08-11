@@ -544,6 +544,43 @@
         }
       }
     },
+    "/api/projects/{project_id}/report/pdf": {
+      "get": {
+        "summary": "Export Project Report Pdf",
+        "operationId": "export_project_report_pdf_api_projects__project_id__report_pdf_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/tasks": {
       "post": {
         "summary": "Create Task",

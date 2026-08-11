@@ -509,6 +509,19 @@ def test_export_csv_matches_import_structure_and_can_be_reimported(client):
     assert body["counts"]["tasks"] > 0
 
 
+def test_project_report_pdf_download(client):
+    headers = auth_headers(client)
+    project_id = client.get("/api/bootstrap", headers=headers).json()["current_project"]["id"]
+    response = client.get(f"/api/projects/{project_id}/report/pdf", headers=headers)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.headers["content-disposition"].endswith(f"proyecta360_informe_proyecto_{project_id}.pdf")
+    assert response.content.startswith(b"%PDF-1.4")
+    assert b"Informe Ejecutivo del Proyecto" in response.content
+    assert len(response.content) > 5000
+
+
 def test_upload_evidence_and_download(client):
     payload = client.get('/api/bootstrap', headers=auth_headers(client)).json()
     project_id = payload['current_project']['id']

@@ -18,7 +18,7 @@ import type {
   WorkItemIn
 } from "@contracts/types";
 
-import { apiRequest, clearToken, hasToken, logout } from "@/api/client";
+import { apiRequest, clearToken, downloadProjectReportPdf, hasToken, logout } from "@/api/client";
 import { ProjectShell } from "@/components/ProjectShell";
 import { TopBar } from "@/components/TopBar";
 import { asBootstrapPayload, type BootstrapPayload, type Story } from "@/domain/project";
@@ -42,6 +42,7 @@ export function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reportBusy, setReportBusy] = useState(false);
   const [activeView, setActiveView] = useState<AppView>("portfolio");
 
   const loadBootstrap = useCallback(async (projectId?: number) => {
@@ -67,6 +68,19 @@ export function App() {
   async function handleLogout() {
     await logout().catch(() => clearToken());
     setData(null);
+  }
+
+  async function downloadReport() {
+    if (!data?.current_project.id) return;
+    setReportBusy(true);
+    setError("");
+    try {
+      await downloadProjectReportPdf(data.current_project.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo generar el informe PDF");
+    } finally {
+      setReportBusy(false);
+    }
   }
 
   async function createProject(project: ProjectIn) {
@@ -537,6 +551,8 @@ export function App() {
           activeView={activeView}
           data={data}
           loading={loading}
+          reportBusy={reportBusy}
+          onDownloadReport={() => void downloadReport()}
           onProjectChange={(projectId) => void loadBootstrap(projectId)}
         >
           {renderView(data)}

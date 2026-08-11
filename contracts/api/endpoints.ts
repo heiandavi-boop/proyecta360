@@ -52,6 +52,7 @@ export const API_ENDPOINTS = {
   export_project_json_api_projects__project_id__export_json_get: { method: "GET", path: "/api/projects/{project_id}/export/json" },
   intelligence_api_projects__project_id__intelligence_get: { method: "GET", path: "/api/projects/{project_id}/intelligence" },
   metrics_api_projects__project_id__metrics_get: { method: "GET", path: "/api/projects/{project_id}/metrics" },
+  export_project_report_pdf_api_projects__project_id__report_pdf_get: { method: "GET", path: "/api/projects/{project_id}/report/pdf" },
   linkable_tasks_api_projects__project_id__scrum_linkable_tasks_get: { method: "GET", path: "/api/projects/{project_id}/scrum/linkable-tasks" },
   task_scrum_summary_api_projects__project_id__tasks__task_id__scrum_summary_get: { method: "GET", path: "/api/projects/{project_id}/tasks/{task_id}/scrum-summary" },
   create_resource_api_resources_post: { method: "POST", path: "/api/resources" },
