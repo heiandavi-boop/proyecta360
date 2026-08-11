@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type DragEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type DragEvent, type FormEvent } from "react";
 
 import type { WorkItemIn } from "@contracts/types";
 
@@ -17,6 +17,53 @@ type AgileMode = "Scrum" | "Kanban" | "Scrumban" | "Híbrido";
 type AgileTab = "list" | "board" | "metrics" | "settings";
 
 const DEFAULT_STATUSES = ["Lista", "Por hacer", "En progreso", "En revisión", "Bloqueado", "Hecho"];
+const MODE_STATUS_PRESETS: Record<AgileMode, string[]> = {
+  Scrum: ["Backlog", "Seleccionado", "En desarrollo", "En revisión", "Bloqueado", "Hecho"],
+  Kanban: ["Entrada", "Listo", "En curso", "Validación", "Bloqueado", "Terminado"],
+  Scrumban: ["Backlog", "Listo", "En curso", "En revisión", "Bloqueado", "Hecho"],
+  Híbrido: ["Planificado", "Por hacer", "En progreso", "En revisión", "Bloqueado", "Cerrado"],
+};
+const MODE_PROFILES: Record<AgileMode, {
+  focus: string;
+  planning: string;
+  board: string;
+  metric: string;
+  cadence: string;
+  accent: string;
+}> = {
+  Scrum: {
+    focus: "Entrega por ciclos con compromiso de alcance y objetivo de sprint.",
+    planning: "Se prioriza un ciclo activo y se mide avance por puntos comprometidos.",
+    board: "Backlog -> Seleccionado -> Desarrollo -> Revisión -> Hecho.",
+    metric: "Burndown, velocidad y cumplimiento del sprint.",
+    cadence: "Sprint fijo",
+    accent: "#2764E8",
+  },
+  Kanban: {
+    focus: "Flujo continuo sin ciclos obligatorios, optimizado por WIP y bloqueos.",
+    planning: "El trabajo entra por demanda y se limita lo que está en curso.",
+    board: "Entrada -> Listo -> En curso -> Validación -> Terminado.",
+    metric: "WIP, throughput, bloqueos y tiempo de flujo.",
+    cadence: "Flujo continuo",
+    accent: "#14b8a6",
+  },
+  Scrumban: {
+    focus: "Combina cadencia de Scrum con control de flujo de Kanban.",
+    planning: "Puede usar ciclos, pero protege el tablero con límites y priorización continua.",
+    board: "Backlog -> Listo -> En curso -> Revisión -> Hecho.",
+    metric: "WIP más avance por ciclo y entregables terminados.",
+    cadence: "Ciclo flexible",
+    accent: "#7654E8",
+  },
+  Híbrido: {
+    focus: "Conecta trabajo ágil con Plan Maestro, PMO, entregables y gobierno.",
+    planning: "El trabajo se prioriza por componentes, hitos y dependencias del cronograma.",
+    board: "Planificado -> Por hacer -> En progreso -> Revisión -> Cerrado.",
+    metric: "Trazabilidad al Plan Maestro, avance, bloqueos y entregables.",
+    cadence: "Gobierno mixto",
+    accent: "#171A21",
+  },
+};
 const WORK_TYPES = ["Historia", "Tarea", "Bug", "Mejora", "Solicitud", "Entregable", "Otro"];
 const AGILE_MODES: AgileMode[] = ["Scrum", "Kanban", "Scrumban", "Híbrido"];
 
@@ -84,13 +131,15 @@ export function AgileWorkView({ busy = false, canWrite = true, data, onCreateWor
   const [activeTab, setActiveTab] = useState<AgileTab>("board");
   const [mode, setMode] = useState<AgileMode>(() => modeFromProject(data));
   const [selectedCycleId, setSelectedCycleId] = useState<number | "all">("all");
+  const modeProfile = MODE_PROFILES[mode];
+  const modePreset = MODE_STATUS_PRESETS[mode];
 
   const baseStatuses = useMemo(() => Array.from(new Set([
-    ...DEFAULT_STATUSES,
+    ...modePreset,
     ...customStatuses,
     ...data.stories.map((item) => item.status || "Por hacer"),
-  ].filter(Boolean))), [customStatuses, data.stories]);
-  const statuses = useMemo(() => orderStatuses(baseStatuses, statusOrder.length ? statusOrder : DEFAULT_STATUSES), [baseStatuses, statusOrder]);
+  ].filter(Boolean))), [customStatuses, data.stories, modePreset]);
+  const statuses = useMemo(() => orderStatuses(baseStatuses, statusOrder.length ? statusOrder : modePreset), [baseStatuses, modePreset, statusOrder]);
   const usesCycles = mode === "Scrum" || mode === "Scrumban" || mode === "Híbrido";
   const activeCycle = data.sprints.find((cycle) => cycle.status === "Activo") || data.sprints[0];
   const visibleItems = useMemo(() => {
@@ -176,6 +225,12 @@ export function AgileWorkView({ busy = false, canWrite = true, data, onCreateWor
   function updateMode(nextMode: AgileMode) {
     setMode(nextMode);
     window.localStorage.setItem(modeStorageKey, nextMode);
+    const defaultOrCurrent = new Set([...DEFAULT_STATUSES, ...Object.values(MODE_STATUS_PRESETS).flat()]);
+    const hasOnlyDefaultStatuses = statuses.every((status) => defaultOrCurrent.has(status));
+    if (!statusOrder.length || hasOnlyDefaultStatuses) {
+      persistStatusOrder(MODE_STATUS_PRESETS[nextMode]);
+      setDraft((current) => ({ ...current, status: MODE_STATUS_PRESETS[nextMode][0], sprint_id: nextMode === "Kanban" ? null : current.sprint_id }));
+    }
     setActiveTab(nextMode === "Scrum" ? "metrics" : "board");
   }
 
@@ -268,7 +323,7 @@ export function AgileWorkView({ busy = false, canWrite = true, data, onCreateWor
   }
 
   return (
-    <section className="panel full-span agile-workspace">
+    <section className={`panel full-span agile-workspace agile-mode-${mode.toLowerCase().replace("í", "i")}`} style={{ "--mode-accent": modeProfile.accent } as CSSProperties}>
       <div className="panel-heading agile-heading">
         <div>
           <h2>{t("agile.title")}</h2>
@@ -287,6 +342,24 @@ export function AgileWorkView({ busy = false, canWrite = true, data, onCreateWor
             </button>
           ) : null}
         </div>
+      </div>
+
+      <div className="agile-mode-banner">
+        <article>
+          <span>Marco activo</span>
+          <b>{mode}</b>
+          <small>{modeProfile.cadence}</small>
+        </article>
+        <article>
+          <span>Foco operativo</span>
+          <b>{modeProfile.focus}</b>
+          <small>{modeProfile.planning}</small>
+        </article>
+        <article>
+          <span>Flujo recomendado</span>
+          <b>{modeProfile.board}</b>
+          <small>{modeProfile.metric}</small>
+        </article>
       </div>
 
       <div className="agile-tabs" role="tablist" aria-label={t("agile.title")}>
