@@ -787,48 +787,55 @@ textarea {
 
 .portfolio-table th:nth-child(1),
 .portfolio-table td:nth-child(1) {
-  width: 22%;
+  width: 25%;
 }
 
 .portfolio-table th:nth-child(2),
 .portfolio-table td:nth-child(2) {
-  width: 8%;
+  width: 10%;
 }
 
 .portfolio-table th:nth-child(3),
 .portfolio-table td:nth-child(3) {
-  width: 13%;
+  width: 6%;
+  white-space: nowrap;
 }
 
 .portfolio-table th:nth-child(4),
-.portfolio-table td:nth-child(4),
+.portfolio-table td:nth-child(4) {
+  width: 6%;
+}
+
 .portfolio-table th:nth-child(5),
 .portfolio-table td:nth-child(5) {
-  width: 5.5%;
+  width: 7%;
 }
 
 .portfolio-table th:nth-child(6),
 .portfolio-table td:nth-child(6) {
-  width: 7%;
+  width: 9%;
 }
 
 .portfolio-table th:nth-child(7),
 .portfolio-table td:nth-child(7) {
-  width: 9%;
+  width: 10%;
 }
 
 .portfolio-table th:nth-child(8),
 .portfolio-table td:nth-child(8) {
-  width: 7.5%;
+  width: 10%;
 }
 
 .portfolio-table th:nth-child(9),
 .portfolio-table td:nth-child(9),
 .portfolio-table th:nth-child(10),
-.portfolio-table td:nth-child(10),
+.portfolio-table td:nth-child(10) {
+  width: 5%;
+}
+
 .portfolio-table th:nth-child(11),
 .portfolio-table td:nth-child(11) {
-  width: 4.5%;
+  width: 6%;
 }
 
 .portfolio-table th:nth-child(12),
@@ -3169,29 +3176,32 @@ textarea {
 
   .portfolio-table th:nth-child(1),
   .portfolio-table td:nth-child(1) {
-    width: 25%;
+    width: 28%;
   }
 
   .portfolio-table th:nth-child(2),
   .portfolio-table td:nth-child(2) {
-    width: 10%;
+    width: 11%;
   }
 
   .portfolio-table th:nth-child(3),
   .portfolio-table td:nth-child(3) {
-    width: 15%;
+    width: 7%;
   }
 
   .portfolio-table th:nth-child(4),
-  .portfolio-table td:nth-child(4),
+  .portfolio-table td:nth-child(4) {
+    width: 7%;
+  }
+
   .portfolio-table th:nth-child(5),
   .portfolio-table td:nth-child(5) {
-    width: 7%;
+    width: 8%;
   }
 
   .portfolio-table th:nth-child(6),
   .portfolio-table td:nth-child(6) {
-    width: 8%;
+    width: 10%;
   }
 
   .portfolio-table th:nth-child(7),
@@ -3201,7 +3211,7 @@ textarea {
 
   .portfolio-table th:nth-child(8),
   .portfolio-table td:nth-child(8) {
-    width: 9%;
+    width: 11%;
   }
 
   .portfolio-table th:nth-child(10),
@@ -3209,8 +3219,8 @@ textarea {
     width: 5%;
   }
 
-  .portfolio-table th:nth-child(12),
-  .portfolio-table td:nth-child(12) {
+  .portfolio-table th:nth-child(11),
+  .portfolio-table td:nth-child(11) {
     width: 4%;
   }
 }

@@ -284,7 +284,7 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
 
       <div className="panel">
         <div className="filter-bar">
-          <input aria-label="Buscar proyectos" placeholder="Buscar proyecto, PM o metodologia" value={query} onChange={(event) => setQuery(event.target.value)} />
+          <input aria-label="Buscar proyectos" placeholder="Buscar proyecto o PM" value={query} onChange={(event) => setQuery(event.target.value)} />
           <select aria-label="Filtrar estado" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
             <option value="">Todos los estados</option>
             {statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}
@@ -296,7 +296,6 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
               <tr>
                 <th>{t("portfolio.project")}</th>
                 <th>PM</th>
-                <th>{t("portfolio.methodology")}</th>
                 <th>{t("portfolio.start")}</th>
                 <th>{t("portfolio.calculatedEnd")}</th>
                 <th>{t("portfolio.status")}</th>
@@ -316,7 +315,6 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
                   <tr key={`${row.project_id || row.name}-${index}`}>
                     <td><strong>{row.name}</strong></td>
                     <td>{row.project_manager || "-"}</td>
-                    <td><span className="badge neutral">{row.methodology || "-"}</span></td>
                     <td>{row.start_date || "-"}</td>
                     <td>{row.end_date || "-"}</td>
                     <td><span className={badgeClass(status)}>{status || "-"}</span></td>
@@ -333,7 +331,7 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
                   </tr>
                 );
               })}
-              {!filteredRows.length ? <tr><td colSpan={13}>{t("common.noData")}</td></tr> : null}
+              {!filteredRows.length ? <tr><td colSpan={12}>{t("common.noData")}</td></tr> : null}
             </tbody>
           </table>
         </div>
