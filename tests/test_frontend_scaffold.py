@@ -82,7 +82,9 @@ def test_frontend_portfolio_is_project_open_list_not_metric_table():
 
     assert "portfolio-table" in portfolio
     assert "filter-bar" in portfolio
-    assert "portfolio.methodology" in portfolio
+    assert "portfolio.methodology" not in portfolio
+    assert "delete-project-modal" in portfolio
+    assert "deleteInput.trim() !== deleteCode" in portfolio
     assert "PHS" in portfolio
     assert "progress_variance_pp" in portfolio
     assert "budget_variance_pp" in portfolio

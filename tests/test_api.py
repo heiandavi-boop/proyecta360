@@ -438,6 +438,42 @@ def test_consulta_role_cannot_mutate(client):
     assert response.status_code == 403
 
 
+def test_delete_project_removes_associated_records(client):
+    headers = auth_headers(client)
+    create = client.post(
+        "/api/projects",
+        headers=headers,
+        json=project_required_context(name="Proyecto para eliminar", start_date="2026-09-01", project_manager="PM"),
+    )
+    assert create.status_code == 200
+    project_id = create.json()["id"]
+
+    with main_module.db() as conn:
+        task = conn.execute(
+            "INSERT INTO tasks (project_id, title, start_date, end_date) VALUES (?, ?, ?, ?)",
+            (project_id, "Tarea asociada", "2026-09-01", "2026-09-05"),
+        )
+        conn.execute("INSERT INTO resources (project_id, name) VALUES (?, ?)", (project_id, "Recurso asociado"))
+        conn.execute("INSERT INTO budget_entries (project_id, month, planned_amount) VALUES (?, ?, ?)", (project_id, "2026-09", 100))
+        conn.execute("INSERT INTO risks (project_id, title) VALUES (?, ?)", (project_id, "Riesgo asociado"))
+        conn.execute("INSERT INTO sprints (project_id, name, start_date, end_date) VALUES (?, ?, ?, ?)", (project_id, "Ciclo asociado", "2026-09-01", "2026-09-15"))
+        conn.execute("INSERT INTO stories (project_id, title, master_task_id) VALUES (?, ?, ?)", (project_id, "Historia asociada", task.lastrowid))
+        thread = conn.execute("INSERT INTO conversation_threads (project_id, title) VALUES (?, ?)", (project_id, "Conversacion asociada"))
+        conn.execute("INSERT INTO conversation_messages (thread_id, project_id, message) VALUES (?, ?, ?)", (thread.lastrowid, project_id, "Mensaje asociado"))
+        conn.commit()
+
+    response = client.delete(f"/api/projects/{project_id}", headers=headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["message"] == "Proyecto eliminado"
+    with main_module.db() as conn:
+        assert conn.execute("SELECT COUNT(*) AS total FROM projects WHERE id = ?", (project_id,)).fetchone()["total"] == 0
+        for table in ["tasks", "resources", "budget_entries", "risks", "sprints", "stories", "conversation_threads", "conversation_messages"]:
+            remaining = conn.execute(f"SELECT COUNT(*) AS total FROM {table} WHERE project_id = ?", (project_id,)).fetchone()["total"]
+            assert remaining == 0, table
+
+
 def test_seed_endpoint_is_admin_only(client):
     pm_response = client.post("/api/seed", headers=auth_headers(client, "alejandra@prunin.ai", "demo123"))
     admin_response = client.post("/api/seed", headers=auth_headers(client))

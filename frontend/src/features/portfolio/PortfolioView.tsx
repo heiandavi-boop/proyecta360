@@ -11,6 +11,7 @@ type PortfolioViewProps = {
   canWrite?: boolean;
   onCreateProject: (project: ProjectIn) => Promise<void>;
   onUpdateProject: (projectId: number, project: ProjectUpdate) => Promise<void>;
+  onDeleteProject: (projectId: number) => Promise<void>;
   onImportProjectCsv: (formData: FormData) => Promise<void>;
   onOpenProject: (projectId: number) => void;
 };
@@ -120,11 +121,15 @@ function defaultDraft(): ProjectDraft {
   } as ProjectDraft;
 }
 
+function confirmationCode(): string {
+  return `PRN-${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
 function projectToDraft(project: Record<string, unknown>): ProjectDraft {
   return { ...defaultDraft(), ...(project as Partial<ProjectDraft>), id: Number(project.id) };
 }
 
-export function PortfolioView({ busy = false, canWrite = true, data, onCreateProject, onUpdateProject, onImportProjectCsv, onOpenProject }: PortfolioViewProps) {
+export function PortfolioView({ busy = false, canWrite = true, data, onCreateProject, onUpdateProject, onDeleteProject, onImportProjectCsv, onOpenProject }: PortfolioViewProps) {
   const { t } = useI18n();
   const [showCreatePanel, setShowCreatePanel] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
@@ -132,6 +137,9 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<PortfolioRow | null>(null);
+  const [deleteCode, setDeleteCode] = useState("");
+  const [deleteInput, setDeleteInput] = useState("");
   const [draft, setDraft] = useState<ProjectDraft>(() => defaultDraft());
 
   const rows = data.portfolio as PortfolioRow[];
@@ -174,6 +182,20 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
     setEditingProjectId(projectId);
     setActiveSection("general");
     setShowCreatePanel(true);
+  }
+
+  function requestDeleteProject(row: PortfolioRow) {
+    setDeleteTarget(row);
+    setDeleteCode(confirmationCode());
+    setDeleteInput("");
+  }
+
+  async function confirmDeleteProject() {
+    if (!deleteTarget?.project_id || deleteInput.trim() !== deleteCode) return;
+    await onDeleteProject(Number(deleteTarget.project_id));
+    setDeleteTarget(null);
+    setDeleteCode("");
+    setDeleteInput("");
   }
 
   function updateDraft<K extends keyof ProjectDraft>(key: K, value: ProjectDraft[K]) {
@@ -301,10 +323,8 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
                 <th>{t("portfolio.status")}</th>
                 <th>PHS</th>
                 <th>Avance real / esperado</th>
-                <th>Presupuesto ejec. / esperado</th>
                 <th className="optional-col">{t("portfolio.currency")}</th>
-                <th>Hitos en riesgo</th>
-                <th className="optional-col">Proximo hito</th>
+                <th>Presupuesto ejec. / esperado</th>
                 <th>{t("ai.actions")}</th>
               </tr>
             </thead>
@@ -320,22 +340,55 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
                     <td><span className={badgeClass(status)}>{status || "-"}</span></td>
                     <td><strong>{Number(row.phs || 0).toFixed(1)}</strong><small className="score-breakdown">C {row.schedule_score || 0} · P {row.budget_score || 0} · R {row.risk_score || 0}</small></td>
                     <td><div className="progress-cell"><i style={{ width: `${Number(row.progress || 0)}%` }} /><span>{row.progress || 0}% / {row.expected_progress || 0}%</span></div><small className={signalClass(row.progress_variance_pp)}>{signed(row.progress_variance_pp)}</small></td>
-                    <td><span>{Number(row.budget_executed_percent || 0).toFixed(1)}% / {Number(row.budget_expected_percent || 0).toFixed(1)}%</span><small className={signalClass(row.budget_variance_pp, true)}>{signed(row.budget_variance_pp)}</small><small>{money(row.spent)} de {money(row.planned_spent)}</small></td>
                     <td className="optional-col">{row.currency || "-"}</td>
-                    <td>{row.at_risk_milestones || 0}<small>{row.critical_path_tasks || 0} criticas</small></td>
-                    <td className="optional-col">{row.next_milestone?.title || "-"}<small>{row.next_milestone?.end_date || ""}</small></td>
-                    <td>
+                    <td><span>{Number(row.budget_executed_percent || 0).toFixed(1)}% / {Number(row.budget_expected_percent || 0).toFixed(1)}%</span><small className={signalClass(row.budget_variance_pp, true)}>{signed(row.budget_variance_pp)}</small><small>{money(row.spent)} de {money(row.planned_spent)}</small></td>
+                    <td className="portfolio-actions">
                       <button className="inline-action" disabled={busy || !row.project_id} onClick={() => onOpenProject(Number(row.project_id))} type="button">{t("portfolio.open")}</button>
                       {canWrite ? <button className="inline-action" disabled={busy || !row.project_id} onClick={() => editProject(Number(row.project_id))} type="button">Editar</button> : null}
+                      {canWrite ? <button className="inline-action danger-action" disabled={busy || !row.project_id} onClick={() => requestDeleteProject(row)} type="button">Eliminar</button> : null}
                     </td>
                   </tr>
                 );
               })}
-              {!filteredRows.length ? <tr><td colSpan={12}>{t("common.noData")}</td></tr> : null}
+              {!filteredRows.length ? <tr><td colSpan={10}>{t("common.noData")}</td></tr> : null}
             </tbody>
           </table>
         </div>
       </div>
+
+      {deleteTarget ? (
+        <div className="modal-backdrop" onClick={() => setDeleteTarget(null)}>
+          <section className="delete-project-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="panel-heading">
+              <div>
+                <h2>Eliminar proyecto</h2>
+                <span>Esta accion elimina el proyecto y todo lo asociado.</span>
+              </div>
+            </div>
+            <p className="delete-warning">
+              Se borraran tareas, dependencias, ciclos, trabajo agil, recursos, presupuesto, riesgos, conversaciones, conocimiento, evidencias e historial del proyecto.
+            </p>
+            <dl className="delete-project-summary">
+              <dt>Proyecto</dt>
+              <dd>{deleteTarget.name || "-"}</dd>
+              <dt>PM</dt>
+              <dd>{deleteTarget.project_manager || "-"}</dd>
+              <dt>Codigo de confirmacion</dt>
+              <dd><code>{deleteCode}</code></dd>
+            </dl>
+            <label className="delete-code-field">
+              Escribe el codigo para confirmar
+              <input autoFocus value={deleteInput} onChange={(event) => setDeleteInput(event.target.value)} />
+            </label>
+            <div className="form-actions">
+              <button className="icon-button" disabled={busy} onClick={() => setDeleteTarget(null)} type="button">{t("common.cancel")}</button>
+              <button className="primary-action delete-confirm-action" disabled={busy || deleteInput.trim() !== deleteCode} onClick={() => void confirmDeleteProject()} type="button">
+                {busy ? t("common.saving") : "Eliminar definitivamente"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }

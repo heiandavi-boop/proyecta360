@@ -111,6 +111,20 @@ export function App() {
     }
   }
 
+  async function deleteProject(projectId: number) {
+    setSaving(true);
+    setError("");
+    try {
+      await apiRequest("delete_project_api_projects__project_id__delete", { params: { project_id: projectId } });
+      await loadBootstrap();
+      setActiveView("portfolio");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to delete project");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function importProjectCsv(formData: FormData) {
     setSaving(true);
     setError("");
@@ -528,9 +542,10 @@ export function App() {
         busy={saving}
         canWrite={canWrite}
         data={payload}
-          onCreateProject={createProject}
-          onUpdateProject={updateProject}
-          onImportProjectCsv={importProjectCsv}
+        onCreateProject={createProject}
+        onUpdateProject={updateProject}
+        onDeleteProject={deleteProject}
+        onImportProjectCsv={importProjectCsv}
         onOpenProject={openProject}
       />
     );

@@ -584,6 +584,12 @@ export interface ApiOperationMap {
     request: FormData;
     response: Record<string, unknown>;
   };
+  "delete_project_api_projects__project_id__delete": {
+    method: "DELETE";
+    path: "/api/projects/{project_id}";
+    request: undefined;
+    response: Record<string, unknown>;
+  };
   "update_project_api_projects__project_id__put": {
     method: "PUT";
     path: "/api/projects/{project_id}";

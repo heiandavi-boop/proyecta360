@@ -41,6 +41,7 @@ export const API_ENDPOINTS = {
   get_portfolio_api_portfolio_get: { method: "GET", path: "/api/portfolio" },
   create_project_api_projects_post: { method: "POST", path: "/api/projects" },
   import_project_csv_api_projects_import_csv_post: { method: "POST", path: "/api/projects/import/csv" },
+  delete_project_api_projects__project_id__delete: { method: "DELETE", path: "/api/projects/{project_id}" },
   update_project_api_projects__project_id__put: { method: "PUT", path: "/api/projects/{project_id}" },
   list_analysis_runs_api_projects__project_id__ai_analysis_runs_get: { method: "GET", path: "/api/projects/{project_id}/ai/analysis-runs" },
   analyze_project_api_projects__project_id__ai_analyze_post: { method: "POST", path: "/api/projects/{project_id}/ai/analyze" },

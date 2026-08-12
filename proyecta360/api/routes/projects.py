@@ -5,7 +5,9 @@ import html
 import io
 import sqlite3
 import textwrap
+from contextlib import suppress
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -33,6 +35,7 @@ def build_router(ctx) -> APIRouter:
     iso_value = ctx.iso_value
     loads = ctx.loads
     one = ctx.one
+    UPLOAD_DIR = ctx.UPLOAD_DIR
     MAX_UPLOAD_BYTES = ctx.MAX_UPLOAD_BYTES
     normalize_task_dates = ctx.normalize_task_dates
     project_intelligence = ctx.project_intelligence
@@ -685,6 +688,86 @@ def build_router(ctx) -> APIRouter:
                 conn.execute(f"UPDATE projects SET {', '.join(fields)} WHERE id = ?", tuple(args))
                 conn.commit()
             return serialize_project(get_project_or_404(conn, project_id))
+    
+    @router.delete("/api/projects/{project_id}")
+    def delete_project(project_id: int) -> Dict[str, Any]:
+        with db() as conn:
+            project = get_project_or_404(conn, project_id)
+            evidence_rows = all_rows(conn, "SELECT file_path FROM evidence_files WHERE project_id = ?", (project_id,))
+            counts = {
+                "ai_recommendation_history": 0,
+                "ai_recommendations": 0,
+                "ai_detected_issues": 0,
+                "ai_analysis_runs": 0,
+                "conversation_messages": 0,
+                "conversation_threads": 0,
+                "evidence_files": 0,
+                "deliverables": 0,
+                "stories": 0,
+                "sprints": 0,
+                "dependencies": 0,
+                "tasks": 0,
+                "risks": 0,
+                "budget_entries": 0,
+                "resources": 0,
+                "components": 0,
+                "change_log": 0,
+                "projects": 0,
+            }
+
+            recommendation_ids = [row["id"] for row in all_rows(conn, "SELECT id FROM ai_recommendations WHERE project_id = ?", (project_id,))]
+            if recommendation_ids:
+                placeholders = ",".join("?" for _ in recommendation_ids)
+                counts["ai_recommendation_history"] = conn.execute(
+                    f"DELETE FROM ai_recommendation_history WHERE recommendation_id IN ({placeholders})",
+                    tuple(recommendation_ids),
+                ).rowcount
+
+            delete_order = [
+                "ai_recommendations",
+                "ai_detected_issues",
+                "ai_analysis_runs",
+                "conversation_messages",
+                "conversation_threads",
+                "evidence_files",
+                "deliverables",
+                "stories",
+                "sprints",
+                "dependencies",
+                "tasks",
+                "risks",
+                "budget_entries",
+                "resources",
+                "components",
+                "change_log",
+            ]
+            for table in delete_order:
+                counts[table] = conn.execute(f"DELETE FROM {table} WHERE project_id = ?", (project_id,)).rowcount
+            counts["projects"] = conn.execute("DELETE FROM projects WHERE id = ?", (project_id,)).rowcount
+            conn.commit()
+
+            deleted_files = 0
+            upload_root = Path(UPLOAD_DIR).resolve()
+            for row in evidence_rows:
+                raw_path = str(row.get("file_path") or "").strip()
+                if not raw_path:
+                    continue
+                file_path = Path(raw_path)
+                if not file_path.is_absolute():
+                    file_path = upload_root / file_path
+                with suppress(Exception):
+                    resolved = file_path.resolve()
+                    if resolved.is_file() and (resolved == upload_root or upload_root in resolved.parents):
+                        resolved.unlink()
+                        deleted_files += 1
+
+            return {
+                "message": "Proyecto eliminado",
+                "project_id": project_id,
+                "project_name": project["name"],
+                "deleted": counts,
+                "deleted_files": deleted_files,
+            }
     
 
     @router.get("/api/projects/{project_id}/metrics")
