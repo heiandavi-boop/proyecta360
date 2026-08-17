@@ -199,7 +199,6 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
   const [draft, setDraft] = useState<TaskIn>({
     project_id: data.current_project.id,
     title: "",
-    start_date: data.current_project.start_date,
     duration_days: 1,
     owner: "",
     progress: 0,
@@ -262,8 +261,8 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
   }).length;
 
   useEffect(() => {
-    setDraft((current) => ({ ...current, project_id: data.current_project.id, start_date: current.title ? current.start_date : data.current_project.start_date }));
-  }, [data.current_project.id, data.current_project.start_date]);
+    setDraft((current) => ({ ...current, project_id: data.current_project.id }));
+  }, [data.current_project.id]);
 
   useEffect(() => {
     setStoryDraft((current) => ({ ...current, project_id: data.current_project.id }));
@@ -280,9 +279,13 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
 
   async function submitTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await onCreateTask({ ...draft, project_id: data.current_project.id });
+    const payload = { ...draft, project_id: data.current_project.id };
+    if (!payload.start_date) {
+      delete (payload as Partial<TaskIn>).start_date;
+    }
+    await onCreateTask(payload);
     setShowForm(false);
-    setDraft((current) => ({ ...current, title: "", duration_days: 1, progress: 0 }));
+    setDraft((current) => ({ ...current, title: "", duration_days: 1, progress: 0, start_date: undefined }));
   }
 
   function openTaskForm(taskType: "task" | "milestone") {
@@ -499,8 +502,7 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
 
         {canWrite && showForm ? (
           <form className="inline-form" onSubmit={(event) => void submitTask(event)}>
-            <label className="wide-field">{t("gantt.taskName")}<input required value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
-            <label>{t("gantt.start")}<input required type="date" value={draft.start_date} onChange={(event) => setDraft({ ...draft, start_date: event.target.value })} /></label>
+            <label className="wide-field"><span className="required-label">{t("gantt.taskName")}<b className="required-asterisk" aria-hidden="true" style={{ color: "#dc2626", marginLeft: "4px", fontWeight: "bold" }}>*</b></span><input required value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
             <label>{t("gantt.duration")}<input min="0" type="number" value={draft.duration_days || 0} onChange={(event) => setDraft({ ...draft, duration_days: Number(event.target.value) })} /></label>
             <label>{t("gantt.owner")}<select value={draft.owner || ""} onChange={(event) => setDraft({ ...draft, owner: event.target.value })}><option value="">{t("knowledge.noOwner")}</option>{ownerOptions.map((owner) => <option key={owner} value={owner}>{owner}</option>)}</select></label>
             <label>{t("gantt.progress")}<input max="100" min="0" type="number" value={draft.progress || 0} onChange={(event) => setDraft({ ...draft, progress: Number(event.target.value) })} /></label>
@@ -508,6 +510,12 @@ export function MasterPlanView({ busy = false, canWrite = true, data, onCreateTa
             <div className="form-actions">
               <button className="icon-button" onClick={() => setShowForm(false)} type="button">{t("common.cancel")}</button>
               <button className="primary-action" disabled={busy} type="submit">{busy ? t("common.saving") : t("task.createAction")}</button>
+            </div>
+            <div className="muted-copy" style={{ marginTop: "8px" }}>
+              <small>
+                La fecha de inicio se calculará automáticamente según la fecha de inicio del proyecto y sus dependencias.{' '}
+                {draft.predecessor_id ? 'La fecha se recalculará según la predecesora seleccionada.' : `Fecha base del proyecto: ${projectStart}`}
+              </small>
             </div>
           </form>
         ) : null}

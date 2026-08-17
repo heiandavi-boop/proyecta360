@@ -165,6 +165,7 @@ export function AiView({ busy = false, canWrite = true, data, onRecommendationAc
   const summary = lastRun?.summary || (
     `Ejecuta el análisis para que la IA evalúe el estado del proyecto. Estado actual: avance ${data.metrics.progress}%, ${data.metrics.open_risks} riesgos abiertos, ${data.metrics.delayed_tasks} tareas atrasadas y ${data.metrics.critical_path_tasks} tareas en ruta crítica.`
   );
+  const limitedContextNote = "El motor IA utiliza los datos disponibles; si faltan evidencias o conversaciones, las recomendaciones pueden ser menos precisas.";
   const issues = lastRun?.detected_issues || [];
   const executiveSummary = buildExecutiveSummary();
 
@@ -239,6 +240,7 @@ export function AiView({ busy = false, canWrite = true, data, onRecommendationAc
         <h2>Resumen ejecutivo IA</h2>
         <div className="ai-summary-copy">
           {executiveSummary.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+          <p className="muted-copy"><small>{limitedContextNote}</small></p>
         </div>
       </article>
 

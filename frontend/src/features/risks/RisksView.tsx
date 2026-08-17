@@ -68,7 +68,7 @@ export function RisksView({ busy = false, canWrite = true, data, onCreateRisk }:
       </div>
       {canWrite && showForm ? (
         <form className="inline-form panel" onSubmit={(event) => void submitRisk(event)}>
-          <label className="wide-field">{t("risks.risk")}<input required value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
+          <label className="wide-field"><span className="required-label">{t("risks.risk")}<b className="required-asterisk" aria-hidden="true" style={{ color: "#dc2626", marginLeft: "4px", fontWeight: "bold" }}>*</b></span><input required value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} /></label>
           <label>{t("risk.probability15")}<input max="5" min="1" type="number" value={draft.probability || 1} onChange={(event) => setDraft({ ...draft, probability: Number(event.target.value) })} /></label>
           <label>{t("risk.impact15")}<input max="5" min="1" type="number" value={draft.impact || 1} onChange={(event) => setDraft({ ...draft, impact: Number(event.target.value) })} /></label>
           <label>{t("common.owner")}<select value={draft.owner || ""} onChange={(event) => setDraft({ ...draft, owner: event.target.value })}><option value="">{t("knowledge.noOwner")}</option>{ownerOptions.map((owner) => <option key={owner} value={owner}>{owner}</option>)}</select></label>

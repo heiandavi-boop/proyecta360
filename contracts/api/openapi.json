@@ -3326,13 +3326,13 @@
           },
           "sponsor": {
             "type": "string",
-            "title": "Sponsor",
-            "default": ""
+            "minLength": 1,
+            "title": "Sponsor"
           },
           "project_manager": {
             "type": "string",
-            "title": "Project Manager",
-            "default": ""
+            "minLength": 1,
+            "title": "Project Manager"
           },
           "requesting_area": {
             "type": "string",
@@ -3349,18 +3349,6 @@
             "format": "date",
             "title": "Start Date"
           },
-          "end_date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "End Date"
-          },
           "contractual_end_date": {
             "anyOf": [
               {
@@ -3375,6 +3363,7 @@
           },
           "methodology": {
             "type": "string",
+            "minLength": 1,
             "title": "Methodology",
             "default": "Hibrida"
           },
@@ -3519,6 +3508,8 @@
         "type": "object",
         "required": [
           "name",
+          "sponsor",
+          "project_manager",
           "start_date"
         ],
         "title": "ProjectIn"
@@ -3615,18 +3606,6 @@
               }
             ],
             "title": "Start Date"
-          },
-          "end_date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "End Date"
           },
           "contractual_end_date": {
             "anyOf": [
@@ -4305,8 +4284,15 @@
             "default": "task"
           },
           "start_date": {
-            "type": "string",
-            "format": "date",
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Start Date"
           },
           "end_date": {
@@ -4405,8 +4391,7 @@
         "type": "object",
         "required": [
           "project_id",
-          "title",
-          "start_date"
+          "title"
         ],
         "title": "TaskIn"
       },

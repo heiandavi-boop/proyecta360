@@ -270,7 +270,7 @@ def build_router(ctx) -> APIRouter:
         if profile:
             params["project_profile"] = deep_merge(params.get("project_profile", {}), profile)
         start = pick(project_row, "start_date", date.today().isoformat())
-        end = pick(project_row, "end_date", start)
+        end = start
         summary: Dict[str, Dict[str, int]] = {
             "created": {},
             "updated": {},
@@ -615,7 +615,7 @@ def build_router(ctx) -> APIRouter:
         init_db()
         with db() as conn:
             parameters = merge_project_context(payload.parameters, payload)
-            calculated_end = payload.end_date or payload.start_date
+            calculated_end = payload.start_date
             cur = conn.execute(
                 """INSERT INTO projects (name, description, sponsor, project_manager, start_date, end_date, contractual_end_date, methodology, status, budget, currency, parameters_json)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -668,9 +668,6 @@ def build_router(ctx) -> APIRouter:
             data = payload.model_dump(exclude_unset=True)
             parameter_patch = {key: data.pop(key) for key in list(data.keys()) if key in PROJECT_PROFILE_FIELDS or key in PROJECT_CONTEXT_FIELDS}
             start_date = iso_value(data.get("start_date", current["start_date"]))
-            end_date = iso_value(data.get("end_date", current["end_date"]))
-            if end_date and start_date and end_date < start_date:
-                raise HTTPException(status_code=400, detail="La fecha fin no puede ser menor a la fecha inicio")
             existing_parameters = loads(current["parameters_json"], DEFAULT_PARAMETERS)
             if "parameters" in data and data["parameters"] is not None:
                 existing_parameters = deep_merge(existing_parameters, data.pop("parameters"))
@@ -686,6 +683,10 @@ def build_router(ctx) -> APIRouter:
             if fields:
                 args.append(project_id)
                 conn.execute(f"UPDATE projects SET {', '.join(fields)} WHERE id = ?", tuple(args))
+                if "start_date" in data:
+                    tasks = all_rows(conn, "SELECT id FROM tasks WHERE project_id = ?", (project_id,))
+                    if not tasks:
+                        conn.execute("UPDATE projects SET end_date = ? WHERE id = ?", (start_date, project_id))
                 conn.commit()
             return serialize_project(get_project_or_404(conn, project_id))
     

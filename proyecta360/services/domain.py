@@ -23,6 +23,7 @@ def serialize_project(p: Dict[str, Any]) -> Dict[str, Any]:
     params = loads(out.pop("parameters_json", "{}"), DEFAULT_PARAMETERS)
     params = params if isinstance(params, dict) else {}
     out["parameters"] = params
+    out["calculated_end_date"] = out.get("end_date", "")
     profile = params.get("project_profile") or {}
     strategic = params.get("strategic_framework") or {}
     for key in PROJECT_PROFILE_RESPONSE_FIELDS:

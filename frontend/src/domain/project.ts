@@ -8,6 +8,7 @@ export type Project = {
   sponsor: string;
   start_date: string;
   end_date: string;
+  calculated_end_date?: string;
   contractual_end_date?: string;
   methodology: string;
   status: string;

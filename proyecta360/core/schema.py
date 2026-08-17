@@ -418,6 +418,8 @@ def ensure_schema_columns(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE users ADD COLUMN access_token_hash TEXT DEFAULT ''")
     if "token_expires_at" not in user_cols:
         conn.execute("ALTER TABLE users ADD COLUMN token_expires_at TEXT DEFAULT ''")
+    if "last_activity" not in user_cols:
+        conn.execute("ALTER TABLE users ADD COLUMN last_activity TEXT DEFAULT ''")
     conn.execute("UPDATE users SET access_token = '' WHERE access_token != ''")
 
     ai_cols = columns("ai_settings")

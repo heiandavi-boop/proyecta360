@@ -43,6 +43,9 @@ def build_router(ctx) -> APIRouter:
                 assert_task_in_project(conn, payload.predecessor_id, payload.project_id, "La tarea predecesora")
             if payload.component_id:
                 assert_component_in_project(conn, payload.component_id, payload.project_id)
+            if payload.start_date is None:
+                project = get_project_or_404(conn, payload.project_id)
+                payload.start_date = parse_iso(project["start_date"])
             start_s, end_s, duration = normalize_task_dates(payload.start_date, payload.end_date, payload.duration_days, payload.task_type)
             if payload.order_index <= 0:
                 row = one(conn, "SELECT COALESCE(MAX(order_index), 0) + 1 AS next_order FROM tasks WHERE project_id = ?", (payload.project_id,))

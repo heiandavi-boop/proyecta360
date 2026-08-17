@@ -151,7 +151,6 @@ export interface ProjectIn {
   "currency"?: string;
   "current_situation"?: string;
   "description"?: string;
-  "end_date"?: null | string;
   "external_dependencies"?: string;
   "general_objective"?: string;
   "geographic_context"?: string;
@@ -165,7 +164,7 @@ export interface ProjectIn {
   "problem_statement"?: string;
   "project_code"?: string;
   "project_context"?: string;
-  "project_manager"?: string;
+  "project_manager": string;
   "project_type"?: string;
   "regulatory_constraints"?: string;
   "requesting_area"?: string;
@@ -174,7 +173,7 @@ export interface ProjectIn {
   "scope_included"?: string;
   "socioeconomic_context"?: string;
   "specific_objectives"?: string;
-  "sponsor"?: string;
+  "sponsor": string;
   "stakeholders"?: string;
   "stakeholders_context"?: string;
   "start_date": string;
@@ -192,7 +191,6 @@ export interface ProjectUpdate {
   "currency"?: null | string;
   "current_situation"?: null | string;
   "description"?: null | string;
-  "end_date"?: null | string;
   "external_dependencies"?: null | string;
   "general_objective"?: null | string;
   "geographic_context"?: null | string;
@@ -296,7 +294,7 @@ export interface TaskIn {
   "predecessor_id"?: null | number;
   "progress"?: number;
   "project_id": number;
-  "start_date": string;
+  "start_date"?: null | string;
   "status"?: string;
   "story_points"?: number;
   "task_type"?: string;

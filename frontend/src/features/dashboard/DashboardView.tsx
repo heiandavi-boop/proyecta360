@@ -35,7 +35,7 @@ export function ProjectKpis({ data }: DashboardViewProps) {
   const project = data.current_project;
   const metrics = data.metrics;
   const rows = kpis(metrics, project.currency);
-  rows[1].value = project.end_date;
+  rows[1].value = project.calculated_end_date || project.end_date;
 
   return (
     <section className="kpi-grid">

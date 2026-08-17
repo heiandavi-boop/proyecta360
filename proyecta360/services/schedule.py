@@ -34,8 +34,10 @@ def normalize_task_dates(
     start = parse_iso(iso_value(start_value)) if start_value else date.today()
     if task_type == "milestone":
         return start.isoformat(), start.isoformat(), 0
-    if duration_days is None and end_value:
-        duration_days = task_duration_days(start.isoformat(), iso_value(end_value), task_type)
+    if end_value is not None and str(end_value).strip() != "":
+        end = parse_iso(iso_value(end_value))
+        duration = task_duration_days(start.isoformat(), end.isoformat(), task_type)
+        return start.isoformat(), end.isoformat(), duration
     duration = max(1, int(duration_days or 1))
     end = end_from_duration(start, duration, task_type)
     return start.isoformat(), end.isoformat(), duration

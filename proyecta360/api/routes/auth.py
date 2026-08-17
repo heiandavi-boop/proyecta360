@@ -69,11 +69,12 @@ def build_router(ctx) -> APIRouter:
                 register_failed_login(request, payload.email)
                 raise HTTPException(status_code=401, detail="Correo o contraseña inválidos")
             token = secrets.token_urlsafe(32)
-            expires_at = (datetime.utcnow() + timedelta(minutes=TOKEN_TTL_MINUTES)).isoformat()
+            now = datetime.utcnow()
+            expires_at = (now + timedelta(minutes=TOKEN_TTL_MINUTES)).isoformat()
             new_password_hash = hash_password(payload.password) if password_needs_rehash(user["password_hash"]) else user["password_hash"]
             conn.execute(
-                "UPDATE users SET password_hash = ?, access_token = '', access_token_hash = ?, token_expires_at = ? WHERE id = ?",
-                (new_password_hash, hash_token(token), expires_at, user["id"]),
+                "UPDATE users SET password_hash = ?, access_token = '', access_token_hash = ?, token_expires_at = ?, last_activity = ? WHERE id = ?",
+                (new_password_hash, hash_token(token), expires_at, now.isoformat(), user["id"]),
             )
             conn.commit()
             clear_failed_logins(request, payload.email)

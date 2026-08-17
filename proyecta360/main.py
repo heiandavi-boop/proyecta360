@@ -2,7 +2,7 @@
 
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 from typing import Any, Dict, List, Optional
 
@@ -90,6 +90,30 @@ def user_from_authorization(conn: Any, authorization: Optional[str]) -> Optional
                 return None
         except ValueError:
             return None
+    # Inactivity timeout: if the user's last activity is older than configured minutes, invalidate session
+    from proyecta360.core import config as app_config
+    inactivity_minutes = getattr(app_config, "INACTIVITY_TIMEOUT_MINUTES", 10)
+    last_activity = user.get("last_activity") or ""
+    if last_activity:
+        try:
+            last = datetime.fromisoformat(last_activity)
+            if last + timedelta(minutes=int(inactivity_minutes)) < datetime.utcnow():
+                conn.execute("UPDATE users SET access_token = '', access_token_hash = '', token_expires_at = '', last_activity = '' WHERE id = ?", (user["id"],))
+                conn.commit()
+                return None
+        except ValueError:
+            # corrupted value; force logout
+            conn.execute("UPDATE users SET access_token = '', access_token_hash = '', token_expires_at = '', last_activity = '' WHERE id = ?", (user["id"],))
+            conn.commit()
+            return None
+    # update last_activity to now for active requests
+    try:
+        now_iso = datetime.utcnow().isoformat()
+        conn.execute("UPDATE users SET last_activity = ? WHERE id = ?", (now_iso, user["id"]))
+        conn.commit()
+        user["last_activity"] = now_iso
+    except Exception:
+        pass
     return user
 
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -68,6 +69,27 @@ def create_app(
             except Exception:
                 pass
         return add_security_headers(response, path.startswith("/api/"))
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        # Convert pydantic validation errors into user-friendly messages
+        errors = exc.errors()
+        messages = []
+        for err in errors:
+            loc = err.get("loc") or []
+            # field name is last location element when available
+            field = str(loc[-1]) if loc else "campo"
+            msg_type = err.get("type", "")
+            if msg_type.endswith("value_error.missing") or msg_type.endswith("required"):
+                messages.append(f"El campo '{field}' es obligatorio.")
+            else:
+                # Use the provided message but keep it user-friendly
+                msg = err.get("msg", "Entrada inválida")
+                messages.append(str(msg))
+        if not messages:
+            messages = ["Entrada inválida. Revisa los campos obligatorios y su formato."]
+        # Return combined message without exposing internal trace
+        return add_security_headers(JSONResponse(status_code=422, content={"detail": " ".join(messages)}), True)
 
     frontend_dist = base_dir / "frontend" / "dist"
     frontend_assets = frontend_dist / "assets"

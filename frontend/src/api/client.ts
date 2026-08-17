@@ -129,28 +129,3 @@ export async function logout(): Promise<void> {
   await apiRequest("logout_api_auth_logout_post");
   clearToken();
 }
-
-export async function downloadProjectReportPdf(projectId: number): Promise<void> {
-  const headers: Record<string, string> = {
-    "X-Locale": localStorage.getItem("prunin_language") || "es"
-  };
-  const authToken = token();
-  if (authToken) headers.Authorization = `Bearer ${authToken}`;
-  const response = await fetch(`/api/projects/${encodeURIComponent(String(projectId))}/report/pdf`, { headers });
-  if (!response.ok) {
-    const detail = await response.json().catch(() => ({ detail: "No se pudo generar el informe PDF" }));
-    throw new Error(formatApiError(detail.detail || "No se pudo generar el informe PDF"));
-  }
-  const blob = await response.blob();
-  const disposition = response.headers.get("Content-Disposition") || "";
-  const match = disposition.match(/filename="?([^"]+)"?/i);
-  const filename = match?.[1] || `prunin_informe_proyecto_${projectId}.pdf`;
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
-}

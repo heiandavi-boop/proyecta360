@@ -23,6 +23,7 @@ type PortfolioRow = {
   methodology?: string;
   start_date?: string;
   end_date?: string;
+  calculated_end_date?: string;
   health?: string;
   status?: string;
   progress?: number;
@@ -129,6 +130,10 @@ function projectToDraft(project: Record<string, unknown>): ProjectDraft {
   return { ...defaultDraft(), ...(project as Partial<ProjectDraft>), id: Number(project.id) };
 }
 
+function RequiredLabel({ children }: { children: string }) {
+  return <span className="required-label">{children}<b className="required-asterisk" aria-hidden="true" style={{ color: "#dc2626", marginLeft: "4px", fontWeight: "bold" }}>*</b></span>;
+}
+
 export function PortfolioView({ busy = false, canWrite = true, data, onCreateProject, onUpdateProject, onDeleteProject, onImportProjectCsv, onOpenProject }: PortfolioViewProps) {
   const { t } = useI18n();
   const [showCreatePanel, setShowCreatePanel] = useState(false);
@@ -151,15 +156,31 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
     return matchesQuery && matchesStatus;
   }), [query, rows, statusFilter]);
   const statusOptions = Array.from(new Set(rows.map((row) => String(row.health || row.status || "")).filter(Boolean)));
-  const canSaveProject = Boolean(
-    draft.name.trim() &&
-    draft.project_manager?.trim() &&
-    draft.sponsor?.trim() &&
-    draft.methodology?.trim() &&
-    draft.start_date &&
-    draft.currency &&
-    Number(draft.budget) >= 0
+  const isNonEmpty = (value?: string | number | null) => String(value ?? "").trim().length > 0;
+
+  const portfolioTotals = {
+    totalProjects: rows.length,
+    healthy: rows.filter((row) => String(row.health || row.status || "").toLowerCase().includes("salud")).length,
+    atRisk: rows.filter((row) => {
+      const status = String(row.health || row.status || "").toLowerCase();
+      return status.includes("riesgo") && !status.includes("crit");
+    }).length,
+    critical: rows.filter((row) => String(row.health || row.status || "").toLowerCase().includes("crit")).length,
+    openRisks: rows.reduce((sum, row) => sum + Number(row.open_risks || 0), 0),
+    budgetTotal: rows.reduce((sum, row) => sum + Number(row.planned_spent || 0), 0),
+    budgetExecuted: rows.reduce((sum, row) => sum + Number(row.spent || 0), 0),
+  };
+
+  const requiredProjectFieldsReady = Boolean(
+    isNonEmpty(draft.name) &&
+    isNonEmpty(draft.project_manager) &&
+    isNonEmpty(draft.sponsor) &&
+    isNonEmpty(draft.start_date) &&
+    isNonEmpty(draft.methodology) &&
+    isNonEmpty(draft.currency)
   );
+
+  const canSaveProject = requiredProjectFieldsReady;
 
   async function submitProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -235,13 +256,13 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
             </div>
             {activeSection === "general" ? (
               <div className="form-grid two">
-                <label>{t("common.name")}<input required value={draft.name} onChange={(event) => updateDraft("name", event.target.value)} /></label>
+                <label><RequiredLabel>{t("common.name")}</RequiredLabel><input required value={draft.name} onChange={(event) => updateDraft("name", event.target.value)} /></label>
                 <label>Codigo del proyecto<input value={draft.project_code || ""} onChange={(event) => updateDraft("project_code", event.target.value)} /></label>
-                <label>{t("project.manager")}<input required value={draft.project_manager || ""} onChange={(event) => updateDraft("project_manager", event.target.value)} /></label>
-                <label>{t("project.sponsor")}<input required value={draft.sponsor || ""} onChange={(event) => updateDraft("sponsor", event.target.value)} /></label>
+                <label><RequiredLabel>{t("project.manager")}</RequiredLabel><input required value={draft.project_manager || ""} onChange={(event) => updateDraft("project_manager", event.target.value)} /></label>
+                <label><RequiredLabel>{t("project.sponsor")}</RequiredLabel><input required value={draft.sponsor || ""} onChange={(event) => updateDraft("sponsor", event.target.value)} /></label>
                 <label>Area solicitante / cliente<input value={draft.requesting_area || ""} onChange={(event) => updateDraft("requesting_area", event.target.value)} /></label>
                 <label>Tipo de proyecto<input value={draft.project_type || ""} onChange={(event) => updateDraft("project_type", event.target.value)} /></label>
-                <label>Metodologia<select required value={draft.methodology || "Hibrida"} onChange={(event) => updateDraft("methodology", event.target.value)}><option>Tradicional</option><option>Scrum</option><option>Kanban</option><option>Hibrida</option></select></label>
+                <label><RequiredLabel>Metodologia</RequiredLabel><select required value={draft.methodology || "Hibrida"} onChange={(event) => updateDraft("methodology", event.target.value)}><option>Tradicional</option><option>Scrum</option><option>Kanban</option><option>Hibrida</option></select></label>
                 <label className="wide-field">{t("common.description")}<textarea rows={3} value={draft.description || ""} onChange={(event) => updateDraft("description", event.target.value)} /></label>
               </div>
             ) : null}
@@ -285,13 +306,13 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
             {activeSection === "planning" ? (
               <div className="form-grid two">
                 <p className="tab-description wide-field">Define fechas, presupuesto y elementos necesarios para ejecutar el proyecto.</p>
-                <label>{t("project.startDate")}<input required type="date" value={draft.start_date} onChange={(event) => updateDraft("start_date", event.target.value)} /></label>
-                <label>Fecha de finalizacion prevista<input type="date" value={draft.contractual_end_date || ""} onChange={(event) => updateDraft("contractual_end_date", event.target.value)} /></label>
-                <label>{t("project.currency")}<select value={draft.currency || "COP"} onChange={(event) => updateDraft("currency", event.target.value)}><option value="COP">COP</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="MXN">MXN</option><option value="PEN">PEN</option><option value="CLP">CLP</option><option value="BRL">BRL</option></select></label>
-                <label>Presupuesto total<input min="0" type="number" value={draft.budget || 0} onChange={(event) => updateDraft("budget", Number(event.target.value))} /></label>
+                <label><RequiredLabel>{t("project.startDate")}</RequiredLabel><input required type="date" value={draft.start_date} onChange={(event) => updateDraft("start_date", event.target.value)} /></label>
+                <label>Fecha compromiso / contractual<input type="date" value={draft.contractual_end_date || ""} onChange={(event) => updateDraft("contractual_end_date", event.target.value)} /></label>
+                <label><RequiredLabel>{t("project.currency")}</RequiredLabel><select required value={draft.currency || "COP"} onChange={(event) => updateDraft("currency", event.target.value)}><option value="COP">COP</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="MXN">MXN</option><option value="PEN">PEN</option><option value="CLP">CLP</option><option value="BRL">BRL</option></select></label>
+                <label>Presupuesto total<input min="0" type="number" value={draft.budget === 0 ? "" : draft.budget} onFocus={(event) => event.target.select()} onChange={(event) => updateDraft("budget", event.target.value === "" ? 0 : Number(event.target.value))} /></label>
               </div>
             ) : null}
-            <div className="form-actions"><button className="icon-button" onClick={() => { setShowCreatePanel(false); setEditingProjectId(null); setDraft(defaultDraft()); }} type="button">{t("common.cancel")}</button><button className="primary-action" disabled={busy || !canSaveProject} type="submit">{busy ? t("common.saving") : editingProjectId ? "Guardar cambios" : t("project.create")}</button></div>
+            <div className="form-actions"><button className="icon-button" onClick={() => { setShowCreatePanel(false); setEditingProjectId(null); setDraft(defaultDraft()); }} type="button">{t("common.cancel")}</button><button className="primary-action" disabled={busy || !canSaveProject} title={!canSaveProject ? "Completa todos los campos obligatorios marcados con *" : undefined} type="submit">{busy ? t("common.saving") : editingProjectId ? "Guardar cambios" : t("project.create")}</button></div>
           </form>
 
           {!editingProjectId ? <form className="stack-form import-card" onSubmit={(event) => void submitImport(event)}>
@@ -312,6 +333,13 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
             {statusOptions.map((status) => <option key={status} value={status}>{status}</option>)}
           </select>
         </div>
+        <section className="budget-summary-grid">
+          <article className="panel budget-summary-card"><span>Total proyectos</span><strong>{portfolioTotals.totalProjects}</strong></article>
+          <article className="panel budget-summary-card"><span>Saludables</span><strong>{portfolioTotals.healthy}</strong></article>
+          <article className="panel budget-summary-card"><span>En riesgo</span><strong>{portfolioTotals.atRisk}</strong></article>
+          <article className="panel budget-summary-card"><span>Críticos</span><strong>{portfolioTotals.critical}</strong></article>
+          {/* Removed project-specific risk and budget cards to keep Portfolio view high-level */}
+        </section>
         <div className="table-scroll">
           <table className="data-table portfolio-table">
             <thead>
@@ -336,7 +364,7 @@ export function PortfolioView({ busy = false, canWrite = true, data, onCreatePro
                     <td><strong>{row.name}</strong></td>
                     <td>{row.project_manager || "-"}</td>
                     <td>{row.start_date || "-"}</td>
-                    <td>{row.end_date || "-"}</td>
+                    <td>{row.calculated_end_date || row.end_date || "-"}</td>
                     <td><span className={badgeClass(status)}>{status || "-"}</span></td>
                     <td><strong>{Number(row.phs || 0).toFixed(1)}</strong><small className="score-breakdown">C {row.schedule_score || 0} · P {row.budget_score || 0} · R {row.risk_score || 0}</small></td>
                     <td><div className="progress-cell"><i style={{ width: `${Number(row.progress || 0)}%` }} /><span>{row.progress || 0}% / {row.expected_progress || 0}%</span></div><small className={signalClass(row.progress_variance_pp)}>{signed(row.progress_variance_pp)}</small></td>

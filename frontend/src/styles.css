@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   --bg: #f3f6fb;
   --panel: #ffffff;
   --line: #dce6f2;
@@ -131,6 +131,25 @@ textarea {
   color: white;
   font-weight: 900;
   padding: 12px 16px;
+}
+
+.primary-action:disabled {
+  background: #cbd5e1;
+  color: #64748b;
+  opacity: 1;
+  box-shadow: none;
+}
+
+.required-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.required-label b {
+  color: var(--red);
+  font-size: 15px;
+  line-height: 1;
 }
 
 .compact-action {
@@ -411,30 +430,6 @@ textarea {
   min-width: min(420px, 100%);
 }
 
-.report-action {
-  display: inline-flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  border: 1px solid #2764E8;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #2764E8, #7654E8);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 950;
-  padding: 0 14px;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, .18);
-}
-
-.report-action:hover:not(:disabled) {
-  background: linear-gradient(135deg, #171A21, #2764E8 50%, #7654E8);
-}
-
-.report-action:disabled {
-  cursor: progress;
-  opacity: .68;
-}
 
 .view-pill {
   display: inline-flex;
@@ -3432,4 +3427,18 @@ textarea {
   .data-grid {
     overflow-x: auto;
   }
+}
+
+.required-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.required-label b,
+.required-asterisk {
+  color: #dc2626 !important;
+  font-weight: 800;
+  margin-left: 3px;
+  font-size: 1.1em;
 }

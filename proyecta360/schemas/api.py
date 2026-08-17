@@ -11,62 +11,6 @@ from proyecta360.core.database import dumps
 from proyecta360.services.schedule import end_from_duration, task_duration_days
 
 
-class ProjectIn(BaseModel):
-    name: str = Field(min_length=1, max_length=160)
-    description: str = ""
-    sponsor: str = ""
-    project_manager: str = ""
-    start_date: date
-    end_date: Optional[date] = None
-    contractual_end_date: Optional[date] = None
-    methodology: str = "Híbrida PMP + Scrum"
-    status: str = "En ejecución"
-    budget: float = Field(default=0, ge=0)
-    currency: str = Field(default="COP", min_length=1, max_length=8)
-    parameters: Dict[str, Any] = Field(default_factory=lambda: json.loads(dumps(DEFAULT_PARAMETERS)))
-
-    @field_validator("currency")
-    @classmethod
-    def validate_currency(cls, value: str) -> str:
-        value = value.upper().strip()
-        if value not in SUPPORTED_CURRENCIES:
-            raise ValueError("Moneda inválida. Selecciona una moneda del catálogo.")
-        return value
-
-    @model_validator(mode="after")
-    def validate_dates(self) -> "ProjectIn":
-        if self.end_date is None:
-            self.end_date = self.start_date
-        if self.contractual_end_date and self.contractual_end_date < self.start_date:
-            raise ValueError("La fecha compromiso no puede ser menor a la fecha inicio")
-        return self
-
-
-class ProjectUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=160)
-    description: Optional[str] = None
-    sponsor: Optional[str] = None
-    project_manager: Optional[str] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    contractual_end_date: Optional[date] = None
-    methodology: Optional[str] = None
-    status: Optional[str] = None
-    budget: Optional[float] = Field(default=None, ge=0)
-    currency: Optional[str] = Field(default=None, min_length=1, max_length=8)
-    parameters: Optional[Dict[str, Any]] = None
-
-    @field_validator("currency")
-    @classmethod
-    def validate_currency(cls, value: Optional[str]) -> Optional[str]:
-        if value is None:
-            return value
-        value = value.upper().strip()
-        if value not in SUPPORTED_CURRENCIES:
-            raise ValueError("Moneda inválida. Selecciona una moneda del catálogo.")
-        return value
-
-
 PROJECT_PROFILE_FIELDS = {"project_code", "requesting_area", "project_type", "priority", "responsible_team"}
 PROJECT_CONTEXT_FIELDS = {
     "problem_statement", "current_situation", "consequence_if_not_done", "general_objective",
@@ -81,14 +25,13 @@ class ProjectIn(BaseModel):
     name: str = Field(min_length=1, max_length=160)
     project_code: str = ""
     description: str = ""
-    sponsor: str = ""
-    project_manager: str = ""
+    sponsor: str = Field(min_length=1)
+    project_manager: str = Field(min_length=1)
     requesting_area: str = ""
     project_type: str = ""
     start_date: date
-    end_date: Optional[date] = None
     contractual_end_date: Optional[date] = None
-    methodology: str = "Hibrida"
+    methodology: str = Field(default="Hibrida", min_length=1)
     priority: str = "Media"
     status: str = "En ejecucion"
     budget: float = Field(default=0, ge=0)
@@ -117,6 +60,20 @@ class ProjectIn(BaseModel):
     regulatory_constraints: str = ""
     parameters: Dict[str, Any] = Field(default_factory=lambda: json.loads(dumps(DEFAULT_PARAMETERS)))
 
+    @field_validator(
+        "name",
+        "sponsor",
+        "project_manager",
+        "methodology",
+        "currency",
+        mode="before",
+    )
+    @classmethod
+    def validate_required_text(cls, value: str) -> str:
+        if value is None or not str(value).strip():
+            raise ValueError("Campo obligatorio")
+        return str(value).strip()
+
     @field_validator("currency")
     @classmethod
     def validate_currency(cls, value: str) -> str:
@@ -127,9 +84,7 @@ class ProjectIn(BaseModel):
 
     @model_validator(mode="after")
     def validate_dates(self) -> "ProjectIn":
-        if self.end_date is None:
-            self.end_date = self.start_date
-        if self.contractual_end_date and self.contractual_end_date < self.start_date:
+        if self.contractual_end_date is not None and self.contractual_end_date < self.start_date:
             raise ValueError("La fecha compromiso no puede ser menor a la fecha inicio")
         return self
 
@@ -143,7 +98,6 @@ class ProjectUpdate(BaseModel):
     requesting_area: Optional[str] = None
     project_type: Optional[str] = None
     start_date: Optional[date] = None
-    end_date: Optional[date] = None
     contractual_end_date: Optional[date] = None
     methodology: Optional[str] = None
     priority: Optional[str] = None
@@ -192,7 +146,7 @@ class TaskIn(BaseModel):
     title: str = Field(min_length=1, max_length=220)
     phase: str = ""
     task_type: str = "task"
-    start_date: date
+    start_date: Optional[date] = None
     end_date: Optional[date] = None
     duration_days: int = Field(default=1, ge=0)
     progress: int = Field(default=0, ge=0, le=100)
@@ -225,13 +179,22 @@ class TaskIn(BaseModel):
 
     @model_validator(mode="after")
     def validate_dates(self) -> "TaskIn":
+        # Avoid computing dates here when start_date is not provided.
+        # The backend route/service (where project start or predecessor is known) will normalize dates.
         if self.task_type == "milestone":
+            # milestone has zero duration; set it and only set end_date when start_date is present
             self.duration_days = 0
-            self.end_date = self.start_date
-        elif self.end_date is None:
-            self.end_date = end_from_duration(self.start_date, self.duration_days, self.task_type)
+            if self.start_date is not None:
+                self.end_date = self.start_date
         else:
-            self.duration_days = task_duration_days(self.start_date.isoformat(), self.end_date.isoformat(), self.task_type)
+            # If start_date is missing, do not compute end_date/duration here.
+            if self.start_date is None:
+                return self
+            # If start_date exists, compute end_date or duration as appropriate
+            if self.end_date is None:
+                self.end_date = end_from_duration(self.start_date, self.duration_days, self.task_type)
+            else:
+                self.duration_days = task_duration_days(self.start_date.isoformat(), self.end_date.isoformat(), self.task_type)
         return self
 
 

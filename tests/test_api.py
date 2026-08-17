@@ -139,6 +139,79 @@ def test_create_project_allows_context_fields_to_be_completed_later(client):
     assert project["general_objective"] == ""
 
 
+def test_create_project_allows_missing_contractual_end_date(client):
+    response = client.post(
+        "/api/projects",
+        headers=auth_headers(client),
+        json={
+            "name": "Proyecto sin compromiso",
+            "project_manager": "PM",
+            "sponsor": "Sponsor",
+            "start_date": "2026-09-01",
+            "budget": 0,
+            "currency": "COP",
+        },
+    )
+
+    assert response.status_code == 200
+    project = response.json()
+    assert project["name"] == "Proyecto sin compromiso"
+    assert project["contractual_end_date"] in (None, "")
+    assert project["budget"] == 0
+
+
+def test_create_task_allows_missing_start_date(client):
+    headers = auth_headers(client)
+    boot = client.get("/api/bootstrap", headers=headers).json()
+    project_id = boot["current_project"]["id"]
+    project_start = boot["current_project"]["start_date"]
+    response = client.post(
+        "/api/tasks",
+        headers=headers,
+        json={
+            "project_id": project_id,
+            "title": "Tarea sin fecha de inicio",
+            "end_date": "2026-09-10",
+            "progress": 0,
+        },
+    )
+
+    assert response.status_code == 200
+    task = response.json()
+    assert task["project_id"] == project_id
+    assert task["start_date"] == project_start
+    assert task["end_date"] == "2026-09-10"
+    assert task["owner"] == ""
+
+
+def test_create_task_defaults_to_project_start_and_respects_duration(client):
+    headers = auth_headers(client)
+    boot = client.get("/api/bootstrap", headers=headers).json()
+    project_id = boot["current_project"]["id"]
+    project_start = boot["current_project"]["start_date"]
+    # Create a task without start_date but with duration_days = 5
+    response = client.post(
+        "/api/tasks",
+        headers=headers,
+        json={
+            "project_id": project_id,
+            "title": "Tarea sin fecha pero con duracion",
+            "duration_days": 5,
+        },
+    )
+
+    assert response.status_code == 200
+    task = response.json()
+    assert task["project_id"] == project_id
+    assert task["start_date"] == project_start
+    assert int(task.get("duration_days", 0)) == 5
+    # end_date should be project_start + 4 days
+    from datetime import datetime, timedelta
+
+    expected_end = (datetime.fromisoformat(project_start) + timedelta(days=4)).date().isoformat()
+    assert task["end_date"] == expected_end
+
+
 def test_update_project_context_fields(client):
     headers = auth_headers(client)
     created = client.post(

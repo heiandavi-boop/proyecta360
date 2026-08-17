@@ -9,6 +9,8 @@ APP_ENV = os.getenv("APP_ENV", "local")
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me-local-only")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "720"))
+# Inactivity timeout (minutes) after which the session requires password re-entry
+INACTIVITY_TIMEOUT_MINUTES = int(os.getenv("INACTIVITY_TIMEOUT_MINUTES", "10"))
 _legacy_db_path = BASE_DIR / ("proyecta" + "360.db")
 _default_db_path = _legacy_db_path if _legacy_db_path.exists() else BASE_DIR / "prunin.db"
 DB_PATH = Path(os.getenv("PRUNIN_DB", os.getenv("PROYECTA" + "360_DB", _default_db_path)))

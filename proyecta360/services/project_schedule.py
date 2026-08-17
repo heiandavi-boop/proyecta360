@@ -4,7 +4,7 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
 
-from proyecta360.core.database import all_rows, iso_value
+from proyecta360.core.database import all_rows, iso_value, one
 from proyecta360.services import schedule as schedule_service
 
 
@@ -69,6 +69,9 @@ def recalculate_project_schedule(conn: sqlite3.Connection, project_id: int) -> N
     """Calcula fechas de cronograma: duracion + predecesoras + resumen por hijos."""
     rows = all_rows(conn, "SELECT * FROM tasks WHERE project_id = ? ORDER BY order_index, id", (project_id,))
     if not rows:
+        project = one(conn, "SELECT start_date FROM projects WHERE id = ?", (project_id,))
+        if project:
+            conn.execute("UPDATE projects SET end_date = ? WHERE id = ?", (project["start_date"], project_id))
         return
     tasks = {int(t["id"]): dict(t) for t in rows}
     deps = all_rows(conn, "SELECT * FROM dependencies WHERE project_id = ? ORDER BY id", (project_id,))
